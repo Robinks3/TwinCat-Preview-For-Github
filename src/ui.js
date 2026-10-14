@@ -95,6 +95,54 @@
     return h("span", { class: `tc-badge tc-badge-${status}` }, STATUS_LABELS[status] || status);
   }
 
+  // Lignes d'affichage côte à côte : [gauche, droite], chacune une opération ou null.
+  // Un bloc de suppressions suivi d'ajouts est apparié ligne à ligne (comme la vue « split » de GitHub).
+  function pairRows(rows) {
+    const out = [];
+    let dels = [];
+    let adds = [];
+    const flush = () => {
+      for (let i = 0; i < Math.max(dels.length, adds.length); i++) out.push([dels[i] || null, adds[i] || null]);
+      dels = [];
+      adds = [];
+    };
+    for (const o of rows) {
+      if (o.t === "-") dels.push(o);
+      else if (o.t === "+") adds.push(o);
+      else {
+        flush();
+        out.push(o.t === "=" ? [o, o] : o);
+      }
+    }
+    flush();
+    return out;
+  }
+
+  function renderCodeSplit(sec, rows, onExpand) {
+    const table = h("table", { class: "tc-code tc-code-split" });
+    const stA = { inBlock: false };
+    const stB = { inBlock: false };
+    const cell = (o, side, st) => {
+      if (!o) return [h("td", { class: "tc-ln tc-empty" }), h("td", { class: "tc-text tc-empty" })];
+      const cls = o.t === "=" ? "" : side === "a" ? "tc-del" : "tc-add";
+      const content = sec.lang === "st" ? highlightSt(o.text, st) : [o.text];
+      return [h("td", { class: `tc-ln ${cls}` }, side === "a" ? o.a : o.b), h("td", { class: `tc-text ${cls}` }, ...content)];
+    };
+    for (const r of pairRows(rows)) {
+      if (!Array.isArray(r)) {
+        const more = r.t === "more";
+        table.append(
+          h("tr", { class: "tc-skip", onclick: () => onExpand(more ? `${sec.key}#all` : sec.key) },
+            h("td", { colspan: 4 }, more ? `Afficher les ${r.count} lignes suivantes` : `⋯ ${r.count} ligne${r.count > 1 ? "s" : ""} inchangée${r.count > 1 ? "s" : ""}`))
+        );
+        stA.inBlock = stB.inBlock = false;
+        continue;
+      }
+      table.append(h("tr", {}, ...cell(r[0], "a", stA), ...cell(r[1], "b", stB)));
+    }
+    return table;
+  }
+
   function renderCode(sec, opts, onExpand) {
     const table = h("table", { class: "tc-code" });
     const state = { inBlock: false };
@@ -105,6 +153,8 @@
     if (all.length > cap) {
       rows.push({ t: "more", count: all.length - cap });
     }
+    // Côte à côte seulement s'il y a les deux côtés (une section ajoutée ou supprimée reste sur une colonne).
+    if (opts.split && sec.status === "modified") return renderCodeSplit(sec, rows, onExpand);
     for (const o of rows) {
       if (o.t === "more") {
         table.append(
@@ -505,7 +555,22 @@
   // ---------- Overlay ----------
 
   function createOverlay(pr, onClose) {
-    const opts = { ignoreWs: false, showUnchanged: false, expanded: new Set() };
+    const pref = (k, d) => {
+      try {
+        const v = localStorage.getItem(`tcpr-${k}`);
+        return v === null ? d : v === "1";
+      } catch (e) {
+        return d;
+      }
+    };
+    const savePref = (k, v) => {
+      try {
+        localStorage.setItem(`tcpr-${k}`, v ? "1" : "0");
+      } catch (e) {
+        // stockage indisponible : réglage valable pour cette ouverture seulement
+      }
+    };
+    const opts = { ignoreWs: false, showUnchanged: false, split: pref("split", true), expanded: new Set() };
     let entries = [];
     let statusText = "Chargement…";
     let message = null;
@@ -669,15 +734,39 @@
       status.textContent = statusText;
       main.scrollTop = scroll;
     };
-    const toggle = (label, prop) =>
+    const toggle = (label, prop, persist) =>
       h("label", { class: "tc-toggle" },
-        h("input", { type: "checkbox", onchange: (e) => { opts[prop] = e.target.checked; rerender(); } }), label);
+        h("input", {
+          type: "checkbox",
+          checked: opts[prop] || null,
+          onchange: (e) => {
+            opts[prop] = e.target.checked;
+            if (persist) savePref(prop, opts[prop]);
+            rerender();
+          },
+        }), label);
+    // Arbre de navigation repliable, pour donner toute la largeur au code.
+    let navShown = pref("nav", true);
+    const navBtn = h("button", {
+      class: "tc-btn tc-nav-toggle",
+      title: "Afficher / masquer l'arborescence",
+      onclick: () => {
+        navShown = !navShown;
+        savePref("nav", navShown);
+        nav.hidden = !navShown;
+        navBtn.setAttribute("aria-pressed", String(navShown));
+      },
+    }, "☰ Arbre");
+    nav.hidden = !navShown;
+    navBtn.setAttribute("aria-pressed", String(navShown));
 
     const panel = h("div", { class: "tc-panel", role: "dialog", "aria-label": "Vue TwinCAT" },
       h("div", { class: "tc-top" },
+        navBtn,
         h("strong", {}, `Vue TwinCAT · PR #${pr.number}`),
         status,
         h("span", { class: "tc-spacer" }),
+        toggle("Côte à côte", "split", true),
         toggle("Ignorer les espaces", "ignoreWs"),
         toggle("Montrer l'inchangé", "showUnchanged"),
         h("button", { class: "tc-close", onclick: onClose, title: "Fermer (Échap)" }, "✕")),

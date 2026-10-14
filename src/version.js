@@ -25,9 +25,11 @@
 //   0.1.21 - github.js createPrLoader : version après vérifiée sur le plus petit objet PLC, plus sur le premier fichier venu (un .tsproj de 6 Mo retardait tout).
 //   0.1.22 - github.js/ui.js : fichiers lourds (.tsproj, .tmc, diff énorme) téléchargés seulement sur clic.
 //   0.1.23 - ui.js : démontage avec hystérésis (1 500 / 5 000 px) et cache d'analyses borné par volume, plus de réanalyses à chaque aller-retour.
+//   0.1.24 - ui.js/styles.css : panneau pleine largeur, marges et retraits réduits, arborescence repliable (bouton « Arbre », mémorisé).
+//   0.1.25 - ui.js renderCodeSplit : vue côte à côte avant | après des sections modifiées, lignes appariées, activée par défaut et mémorisée.
 
 (function (root) {
-  const SCRIPT_VERSION = "0.1.23";
+  const SCRIPT_VERSION = "0.1.25";
   const SCRIPT_DATE = "2026-10-14";
 
   const api = { SCRIPT_VERSION, SCRIPT_DATE };

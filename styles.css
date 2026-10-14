@@ -27,16 +27,16 @@
 
 .tc-overlay {
   position: fixed; inset: 0; z-index: 2147483001; background: rgba(0, 0, 0, 0.45);
-  display: flex; justify-content: center; align-items: stretch; padding: 24px;
+  display: flex; justify-content: center; align-items: stretch; padding: 8px;
 }
 .tc-panel {
   background: var(--tc-bg); color: var(--tc-fg); border: 1px solid var(--tc-border); border-radius: 12px;
-  width: min(1400px, 100%); display: flex; flex-direction: column; overflow: hidden;
+  width: 100%; display: flex; flex-direction: column; overflow: hidden;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3); font-size: 14px;
 }
 .tc-top {
   display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
-  padding: 12px 16px; border-bottom: 1px solid var(--tc-border); background: var(--tc-bg2);
+  padding: 6px 12px; border-bottom: 1px solid var(--tc-border); background: var(--tc-bg2);
 }
 .tc-spacer { flex: 1; }
 .tc-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; }
@@ -45,14 +45,14 @@
   border-radius: 6px; width: 30px; height: 30px; cursor: pointer; font-size: 14px;
 }
 .tc-split { flex: 1; display: flex; min-height: 0; }
-.tc-body { flex: 1; overflow: auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.tc-body { flex: 1; overflow: auto; padding: 8px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 
 /* Navigation : arborescence dossiers > fichiers > membres */
 .tc-nav {
-  width: 300px; flex-shrink: 0; overflow: auto; padding: 10px 6px;
+  width: 250px; flex-shrink: 0; overflow: auto; padding: 6px 4px;
   border-right: 1px solid var(--tc-border); background: var(--tc-bg2); font-size: 13px;
 }
-.tc-nav ul { list-style: none; margin: 0; padding-left: 14px; }
+.tc-nav ul { list-style: none; margin: 0; padding-left: 10px; }
 .tc-nav .tc-nav-root { padding-left: 0; }
 .tc-nav-folder { color: var(--tc-muted); padding: 3px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tc-nav-item {
@@ -85,7 +85,7 @@
 .tc-file-pending { min-height: 120px; }
 .tc-file-head {
   display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-  padding: 8px 12px; background: var(--tc-bg2); border-bottom: 1px solid var(--tc-border);
+  padding: 4px 10px; background: var(--tc-bg2); border-bottom: 1px solid var(--tc-border);
 }
 .tc-path { font-family: var(--tc-mono); font-size: 13px; font-weight: 600; word-break: break-all; }
 .tc-noise { padding: 6px 12px; font-size: 12px; color: var(--tc-muted); border-bottom: 1px solid var(--tc-border); }
@@ -98,9 +98,9 @@
 
 /* Arborescence d'un fichier : POU > méthodes / propriétés > Get / Set */
 .tc-node { border-top: 1px solid var(--tc-border); }
-.tc-node .tc-node { margin-left: 18px; border-left: 2px solid var(--tc-border); border-top: none; margin-top: 6px; }
+.tc-node .tc-node { margin-left: 10px; border-left: 2px solid var(--tc-border); border-top: none; margin-top: 2px; }
 .tc-node-head {
-  display: flex; align-items: center; gap: 8px; padding: 8px 12px; cursor: pointer;
+  display: flex; align-items: center; gap: 6px; padding: 3px 8px; cursor: pointer;
   list-style: none; flex-wrap: wrap;
 }
 .tc-node-head::-webkit-details-marker { display: none; }
@@ -109,7 +109,7 @@
 .tc-node-empty > .tc-node-head::before { visibility: hidden; }
 .tc-node-name { font-weight: 600; }
 .tc-node-sig { font-family: var(--tc-mono); font-size: 12px; color: var(--tc-muted); white-space: pre-wrap; }
-.tc-node-body { padding-bottom: 6px; }
+.tc-node-body { padding-bottom: 2px; }
 .tc-hidden-note { font-size: 12px; padding: 4px 12px 4px 30px; }
 
 .tc-kind {
@@ -125,9 +125,9 @@
 .tc-kind-task, .tc-kind-group { background: #57606a; }
 
 /* Déclaration et code nettement distincts : bandeau, liseré et fond propres à chaque partie */
-.tc-part { margin: 4px 12px 8px 30px; border: 1px solid var(--tc-border); border-radius: 6px; overflow: hidden; }
+.tc-part { margin: 2px 6px 4px 16px; border: 1px solid var(--tc-border); border-radius: 6px; overflow: hidden; }
 .tc-part-label {
-  display: flex; align-items: center; gap: 8px; padding: 3px 10px; font-size: 11px; font-weight: 700;
+  display: flex; align-items: center; gap: 8px; padding: 1px 8px; font-size: 11px; font-weight: 700;
   text-transform: uppercase; letter-spacing: 0.04em; color: var(--tc-muted); background: var(--tc-bg2);
   border-bottom: 1px solid var(--tc-border);
 }
@@ -140,8 +140,8 @@
 .tc-part-attrs, .tc-part-props { border-left: 4px solid var(--tc-muted); }
 
 .tc-code { width: 100%; border-collapse: collapse; font-family: var(--tc-mono); font-size: 12px; line-height: 20px; }
-.tc-code td { padding: 0 8px; vertical-align: top; }
-.tc-code .tc-ln { width: 1%; min-width: 36px; text-align: right; color: var(--tc-muted); user-select: none; }
+.tc-code td { padding: 0 6px; vertical-align: top; }
+.tc-code .tc-ln { width: 1%; min-width: 28px; text-align: right; color: var(--tc-muted); user-select: none; }
 .tc-code .tc-sign { width: 1%; color: var(--tc-muted); user-select: none; }
 .tc-code .tc-text { white-space: pre-wrap; word-break: break-word; }
 .tc-code tr.tc-add { background: var(--tc-add-bg); }
@@ -220,3 +220,14 @@ td[data-tcr-part="impl"] > .tcr-banner { background: var(--bgColor-success-muted
 .tc-btn-inline { border: 1px solid var(--tc-border); margin-left: 6px; }
 .tc-folded { padding: 6px 12px; color: var(--tc-accent); background: var(--tc-bg2); cursor: pointer; font-size: 12px; }
 .tc-folded:hover { text-decoration: underline; }
+
+/* Vue côte à côte : deux moitiés égales, lignes appariées */
+.tc-code-split { table-layout: fixed; }
+.tc-code-split td.tc-ln { width: 44px; }
+.tc-code-split td.tc-text { width: calc(50% - 44px); }
+.tc-code-split td.tc-del { background: var(--tc-del-bg); }
+.tc-code-split td.tc-add { background: var(--tc-add-bg); }
+.tc-code-split td.tc-empty { background: var(--tc-bg2); }
+.tc-code-split td.tc-ln + td.tc-text + td.tc-ln { border-left: 1px solid var(--tc-border); }
+.tc-nav-toggle { border: 1px solid var(--tc-border); }
+.tc-nav[hidden] { display: none; }
