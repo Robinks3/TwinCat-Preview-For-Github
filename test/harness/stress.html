@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TcPR Viewer · test de charge</title>
+  <link rel="stylesheet" href="../../styles.css">
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 24px; background: #fff; color: #1f2328; }
+    button, input { margin: 4px; padding: 6px 10px; }
+    pre { background: #f6f8fa; padding: 12px; border-radius: 6px; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>Test de charge du panneau</h1>
+  <p>PR synthétique générée en mémoire : <code>?files=300&amp;lines=2000</code> (une moitié de fichiers ajoutés, une moitié modifiés une ligne sur dix).</p>
+  <button id="open">Ouvrir le panneau</button>
+  <button id="scroll">Faire défiler tout le panneau</button>
+  <pre id="out">…</pre>
+
+  <script src="../../src/version.js"></script>
+  <script src="../../src/debug.js"></script>
+  <script src="../../src/xml.js"></script>
+  <script src="../../src/model.js"></script>
+  <script src="../../src/lines.js"></script>
+  <script src="../../src/diff.js"></script>
+  <script src="../../src/github.js"></script>
+  <script src="../../src/ui.js"></script>
+  <script>
+    const T = window.TcPr;
+    const q = new URLSearchParams(location.search);
+    const FILES = +(q.get("files") || 300);
+    const LINES = +(q.get("lines") || 2000);
+    const SHA = "b".repeat(40);
+    const out = document.getElementById("out");
+    const say = (t) => (out.textContent = t);
+
+    // Fichier .TcPOU synthétique : déclaration, implémentation et méthodes, ~LINES lignes au total.
+    function pou(k, variant) {
+      const nl = "\r\n";
+      const per = Math.max(10, Math.floor(LINES / 6));
+      const decl = Array.from({ length: per }, (_, i) => `\tv${i} : ${i % 3 ? "INT" : "LREAL"} := ${i}; // var ${i}`);
+      const impl = (m) => Array.from({ length: per }, (_, i) => `v${i} := v${i} + ${variant && i % 10 === 0 ? m + 1 : m};`);
+      const methods = [1, 2, 3, 4].map((m) =>
+        `    <Method Name="M${m}" Id="{00000000-0000-0000-0000-00000000000${m}}">${nl}      <Declaration><![CDATA[METHOD M${m} : BOOL${nl}VAR_INPUT${nl}\tx : INT;${nl}END_VAR]]></Declaration>${nl}      <Implementation>${nl}        <ST><![CDATA[${impl(m).join(nl)}]]></ST>${nl}      </Implementation>${nl}    </Method>`
+      );
+      return [
+        `<?xml version="1.0" encoding="utf-8"?>`,
+        `<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.18">`,
+        `  <POU Name="FB_S${k}" Id="{11111111-0000-0000-0000-000000000000}" SpecialFunc="None">`,
+        `    <Declaration><![CDATA[FUNCTION_BLOCK FB_S${k}${nl}VAR${nl}${decl.join(nl)}${nl}END_VAR]]></Declaration>`,
+        `    <Implementation>`,
+        `      <ST><![CDATA[${impl(0).join(nl)}]]></ST>`,
+        `    </Implementation>`,
+        ...methods,
+        `  </POU>`,
+        `</TcPlcObject>`,
+      ].join(nl) + nl;
+    }
+
+    // Diff unifié d'un fichier : un seul hunk couvrant tout le fichier.
+    function fileDiff(path, before, after) {
+      const lines = [];
+      const add = (t, s) => lines.push(t + s);
+      if (before === null) {
+        const b = after.split(/(?<=\n)/);
+        b.forEach((l) => add("+", l));
+        return `diff --git a/${path} b/${path}\nnew file mode 100644\n--- /dev/null\n+++ b/${path}\n@@ -0,0 +1,${b.length} @@\n${lines.join("")}`;
+      }
+      const a = before.split(/(?<=\n)/);
+      const b = after.split(/(?<=\n)/);
+      for (let i = 0; i < a.length; i++) {
+        if (a[i] === b[i]) add(" ", a[i]);
+        else {
+          add("-", a[i]);
+          add("+", b[i]);
+        }
+      }
+      return `diff --git a/${path} b/${path}\n--- a/${path}\n+++ b/${path}\n@@ -1,${a.length} +1,${b.length} @@\n${lines.join("")}`;
+    }
+
+    const heads = new Map();
+    let diffText = "";
+    function generate() {
+      const t0 = performance.now();
+      const parts = [];
+      for (let k = 0; k < FILES; k++) {
+        const path = `PLC/Gen/F${String(k).padStart(4, "0")}/FB_S${k}.TcPOU`;
+        if (k % 2) {
+          parts.push(fileDiff(path, null, pou(k, false)));
+        } else {
+          const before = pou(k, false);
+          const after = pou(k, true);
+          heads.set(path, after);
+          parts.push(fileDiff(path, before, after));
+        }
+      }
+      diffText = parts.join("");
+      return performance.now() - t0;
+    }
+
+    T.setFetchImpl(async (url) => {
+      await new Promise((r) => setTimeout(r, 30)); // latence réseau simulée
+      if (url.endsWith(".diff")) return diffText;
+      const m = /\/raw\/[0-9a-f]{40}\/(.*)$/.exec(url);
+      if (m && heads.has(decodeURIComponent(m[1]))) return heads.get(decodeURIComponent(m[1]));
+      throw new Error(`404 sur ${url}`);
+    });
+
+    // Tâches longues mesurées pendant tout le test.
+    const longTasks = [];
+    try {
+      new PerformanceObserver((l) => l.getEntries().forEach((e) => longTasks.push(Math.round(e.duration)))).observe({ type: "longtask" });
+    } catch (e) {}
+
+    let ov = null;
+    async function openPanel() {
+      const genMs = generate();
+      const pr = { owner: "demo", repo: "stress", number: 1 };
+      ov = T.createOverlay(pr, () => ov.el.remove());
+      document.body.append(ov.el);
+      const t0 = performance.now();
+      const loader = await T.createPrLoader(pr, T.isTwinCatPath, { headShaHint: SHA });
+      ov.setList(loader.files, loader.load, () => {});
+      await new Promise((r) => setTimeout(r, 1500));
+      say(`Généré : ${FILES} fichiers × ~${LINES} lignes, .diff ${(diffText.length / 1e6).toFixed(1)} Mo (${Math.round(genMs)} ms)\n` +
+        `Ouverture : ${Math.round(performance.now() - t0)} ms · éléments dans la page : ${document.getElementsByTagName("*").length}\n` +
+        `Tâches longues : ${longTasks.length} (max ${Math.max(0, ...longTasks)} ms)`);
+    }
+
+    async function scrollAll() {
+      const main = document.querySelector(".tc-body");
+      longTasks.length = 0;
+      const samples = [];
+      const t0 = performance.now();
+      const step = main.clientHeight * (+(q.get("step") || 1));
+      for (let y = 0; y <= main.scrollHeight; y += step) {
+        main.scrollTop = y;
+        await new Promise((r) => setTimeout(r, 120));
+        samples.push(document.getElementsByTagName("*").length);
+      }
+      await new Promise((r) => setTimeout(r, 800));
+      const filled = document.querySelectorAll(".tc-file-body:not(.tc-file-pending) .tc-node").length;
+      say(out.textContent + `\n\nDéfilement de tout le panneau : ${samples.length} écrans en ${Math.round(performance.now() - t0)} ms\n` +
+        `Éléments dans la page : min ${Math.min(...samples)} · max ${Math.max(...samples)} · fin ${document.getElementsByTagName("*").length}\n` +
+        `Nœuds TwinCAT montés à la fin : ${filled}\n` +
+        `Tâches longues pendant le défilement : ${longTasks.length} (max ${Math.max(0, ...longTasks)} ms)`);
+    }
+
+    document.getElementById("open").onclick = openPanel;
+    document.getElementById("scroll").onclick = scrollAll;
+  </script>
+</body>
+</html>

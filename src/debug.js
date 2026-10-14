@@ -15,20 +15,72 @@
     }
   }
 
-  const state = { enabled: readFlag(), t0: now(), events: [], listeners: new Set() };
+  const JOURNAL_KEY = "tcpr-debug-journal";
+  const JOURNAL_LINES = 400;
+
+  // Journal de la session précédente (lu avant d'être écrasé) : seul témoin d'une page figée puis quittée.
+  function readPrevious() {
+    try {
+      return localStorage.getItem(JOURNAL_KEY) || "";
+    } catch (e) {
+      return "";
+    }
+  }
+
+  const state = { enabled: readFlag(), t0: now(), events: [], listeners: new Set(), previous: readPrevious(), saveQueued: false };
+
+  function save() {
+    state.saveQueued = false;
+    try {
+      const lines = state.events.slice(-JOURNAL_LINES).map(line);
+      const head = `Journal sauvegardé · ${new Date().toLocaleString("fr-FR")} · ${typeof location !== "undefined" ? location.pathname : ""}`;
+      localStorage.setItem(JOURNAL_KEY, [head, ...lines].join("\n"));
+    } catch (e) {
+      // quota ou stockage indisponible : tant pis pour la sauvegarde
+    }
+  }
+
+  function scheduleSave(now) {
+    if (now) return save();
+    if (state.saveQueued) return;
+    state.saveQueued = true;
+    setTimeout(save, 1000);
+  }
 
   function fmt(ms) {
     return ms >= 1000 ? `${(ms / 1000).toFixed(2)} s` : `${Math.round(ms)} ms`;
   }
 
   // Ajoute un événement. `data` : petit objet de valeurs simples (durées, tailles, compteurs).
-  function log(cat, msg, data) {
+  // flush : sauvegarde immédiate (repère posé juste avant un traitement qui pourrait figer la page).
+  function log(cat, msg, data, flush) {
     if (!state.enabled) return;
     const ev = { t: now() - state.t0, cat, msg, data: data || null };
     state.events.push(ev);
     if (state.events.length > MAX_EVENTS) state.events.splice(0, state.events.length - MAX_EVENTS);
     for (const l of state.listeners) l(ev);
+    scheduleSave(!!flush);
   }
+
+  // Repère de début d'un traitement lourd, sauvegardé tout de suite.
+  function mark(cat, msg, data) {
+    log(cat, `début · ${msg}`, data, true);
+  }
+
+  // Tâches longues (page bloquée plus de 200 ms), signalées par le navigateur une fois terminées.
+  function watchLongTasks() {
+    try {
+      if (typeof PerformanceObserver === "undefined") return;
+      new PerformanceObserver((list) => {
+        for (const e of list.getEntries()) {
+          if (e.duration >= 200) log("gel", "tâche longue (page bloquée)", { ms: Math.round(e.duration) });
+        }
+      }).observe({ type: "longtask", buffered: false });
+    } catch (e) {
+      // type « longtask » non pris en charge
+    }
+  }
+  watchLongTasks();
 
   // Chronomètre : const end = time("réseau", "diff"); ... end({ ko: 12 });
   function time(cat, msg, data) {
@@ -87,8 +139,10 @@
       },
       setEnabled,
       log,
+      mark,
       time,
       report,
+      previousReport: () => state.previous,
       line,
       events: () => state.events.slice(),
       clear: () => (state.events = []),

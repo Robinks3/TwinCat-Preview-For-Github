@@ -3,7 +3,7 @@
 // raw.githubusercontent.com) ne renvoient pas d'en-têtes CORS lisibles depuis la page ;
 // depuis l'extension, les host_permissions suffisent et la session GitHub est réutilisée.
 
-const ALLOWED = /^https:\/\/github\.com\/[^/]+\/[^/]+\/(pull\/\d+\.(diff|patch)|raw\/[0-9a-f]{40}\/)/;
+const ALLOWED = /^https:\/\/github\.com\/[^/]+\/[^/]+\/(pull\/\d+\.(diff|patch)|raw\/([0-9a-f]{40}|refs\/heads\/[^?#]+?)\/)/;
 
 // Clic sur l'icône de l'extension : ouvre ou ferme la vue dans l'onglet courant.
 // Un onglet ouvert avant l'installation n'a pas le content script : l'échec est ignoré.

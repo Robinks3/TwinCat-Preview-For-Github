@@ -98,8 +98,21 @@
   function renderCode(sec, opts, onExpand) {
     const table = h("table", { class: "tc-code" });
     const state = { inBlock: false };
-    const rows = T.withContext(sec.ops, opts.expanded.has(sec.key) ? Infinity : 3);
+    const all = T.withContext(sec.ops, opts.expanded.has(sec.key) ? Infinity : 3);
+    // Plafond : au-delà, un bouton affiche la suite (évite des dizaines de milliers de lignes d'un coup).
+    const cap = opts.expanded.has(`${sec.key}#all`) ? Infinity : MAX_CODE_ROWS;
+    const rows = all.slice(0, cap);
+    if (all.length > cap) {
+      rows.push({ t: "more", count: all.length - cap });
+    }
     for (const o of rows) {
+      if (o.t === "more") {
+        table.append(
+          h("tr", { class: "tc-skip", onclick: () => onExpand(`${sec.key}#all`) },
+            h("td", { colspan: 4 }, `Afficher les ${o.count} lignes suivantes`))
+        );
+        continue;
+      }
       if (o.t === "skip") {
         table.append(
           h("tr", { class: "tc-skip", onclick: () => onExpand(sec.key), title: "Afficher tout" },
@@ -126,9 +139,11 @@
     return v.length > 160 ? h("span", { title: v }, `${v.slice(0, 160)}… (${v.length} car.)`) : v;
   }
 
-  function renderProps(sec, opts) {
-    const rows = sec.rows.filter((r) => r.t !== "=" || opts.showUnchanged || sec.status === "added" || sec.status === "removed");
-    const hidden = sec.rows.length - rows.length;
+  function renderProps(sec, opts, onExpand) {
+    const kept = sec.rows.filter((r) => r.t !== "=" || opts.showUnchanged || sec.status === "added" || sec.status === "removed");
+    const hidden = sec.rows.length - kept.length;
+    const cap = opts.expanded.has(`${sec.key}#all`) ? Infinity : MAX_PROP_ROWS;
+    const rows = kept.slice(0, cap);
     const table = h("table", { class: "tc-props" },
       h("thead", {}, h("tr", {}, h("th", {}, "Propriété"), h("th", {}, "Avant"), h("th", {}, "Après"))));
     const tbody = h("tbody");
@@ -136,10 +151,20 @@
       const cls = { "+": "tc-add", "-": "tc-del", "~": "tc-mod", "=": "" }[r.t];
       tbody.append(h("tr", { class: cls }, h("td", { class: "tc-key" }, r.key), h("td", {}, shortValue(r.a)), h("td", {}, shortValue(r.b))));
     }
+    if (kept.length > cap && onExpand) {
+      tbody.append(h("tr", { class: "tc-more", onclick: () => onExpand(`${sec.key}#all`) },
+        h("td", { colspan: 3 }, `Afficher les ${kept.length - cap} propriétés suivantes`)));
+    }
     table.append(tbody);
     return [table, hidden ? h("div", { class: "tc-muted" }, `${hidden} propriété${hidden > 1 ? "s" : ""} inchangée${hidden > 1 ? "s" : ""} masquée${hidden > 1 ? "s" : ""}`) : null];
   }
 
+
+  // Garde-fous contre le gel de la page sur les très grosses PR.
+  const MAX_CODE_ROWS = 1500; // lignes de code affichées par section avant « afficher la suite »
+  const MAX_PROP_ROWS = 400; // propriétés affichées par section avant « afficher la suite »
+  const AUTO_ANALYZE_BYTES = 1.5e6; // au-delà, l'analyse d'un fichier attend un clic
+  const FILE_ROW_BUDGET = 800; // lignes affichées d'office par fichier, le reste sur clic
 
   // ---------- Arborescence TwinCAT ----------
 
@@ -231,11 +256,27 @@
   }
 
   // Analyse d'un fichier (modèles + diff + arbre), mise en cache par réglage « ignorer les espaces ».
-  const analysisCache = new WeakMap();
+  const ANALYSIS_CACHE_MAX = 25;
+  const analysisCache = new Map();
+  const cacheGet = (entry) => {
+    const c = analysisCache.get(entry);
+    if (c) {
+      // Remis en fin de file : le moins récemment utilisé part en premier.
+      analysisCache.delete(entry);
+      analysisCache.set(entry, c);
+    }
+    return c;
+  };
+  const cacheSet = (entry, value) => {
+    analysisCache.delete(entry);
+    analysisCache.set(entry, value);
+    while (analysisCache.size > ANALYSIS_CACHE_MAX) analysisCache.delete(analysisCache.keys().next().value);
+  };
 
   function analyze(entry, opts) {
-    const cached = analysisCache.get(entry);
+    const cached = cacheGet(entry);
     if (cached && cached.ignoreWs === opts.ignoreWs) return cached.value;
+    T.debug.mark("analyse", entry.path, { ko: Math.round(((entry.base || "").length + (entry.head || "").length) / 1024) });
     const end = T.debug.time("analyse", entry.path, {
       ko: Math.round(((entry.base || "").length + (entry.head || "").length) / 1024),
     });
@@ -257,14 +298,24 @@
         };
       }
     }
-    analysisCache.set(entry, { ignoreWs: opts.ignoreWs, value });
+    cacheSet(entry, { ignoreWs: opts.ignoreWs, value });
     end({ statut: value.status });
     return value;
   }
 
   const PART_LABELS = { decl: "Déclaration", impl: "Code", attrs: "Attributs", props: "Propriétés" };
 
-  function renderPart(sec, opts, onExpand) {
+  // Lignes qu'une section afficherait (estimation, avant rendu).
+  function estimateRows(sec, opts) {
+    if (sec.kind !== "code") return Math.min(sec.rows.length, MAX_PROP_ROWS);
+    const ctxLines = opts.expanded.has(sec.key) ? Infinity : 3;
+    const shown = ctxLines === Infinity ? sec.ops.length : T.withContext(sec.ops, ctxLines).length;
+    return Math.min(shown, MAX_CODE_ROWS);
+  }
+
+  // budget : { rows } restant pour le fichier ; une section qui le dépasse reste repliée
+  // derrière un bouton (comme « Load diff » sur GitHub) : le coût d'un fichier est plafonné.
+  function renderPart(sec, opts, onExpand, budget) {
     if (sec.kind === "code") {
       const before = sideText(sec, "-");
       const after = sideText(sec, "+");
@@ -272,18 +323,26 @@
       if (sec.part === "impl" && !before.trim() && !after.trim()) return null;
     }
     const label = sec.lang === "xml" ? sec.label.replace(/^.*· /, "") : PART_LABELS[sec.part] || sec.label;
-    return h("div", { class: `tc-part tc-part-${sec.part || "props"}` },
-      h("div", { class: "tc-part-label" }, label, sec.status !== "unchanged" && sec.status !== "added" && sec.status !== "removed" ? badge(sec.status) : null),
-      sec.kind === "code" ? renderCode(sec, opts, onExpand) : renderProps(sec, opts));
+    const head = h("div", { class: "tc-part-label" }, label, sec.status !== "unchanged" && sec.status !== "added" && sec.status !== "removed" ? badge(sec.status) : null);
+    const rows = estimateRows(sec, opts);
+    const forced = opts.expanded.has(`${sec.key}#show`);
+    if (budget && !forced && rows > budget.rows) {
+      budget.rows = 0; // les sections suivantes du fichier restent repliées aussi
+      return h("div", { class: `tc-part tc-part-${sec.part || "props"}` }, head,
+        h("div", { class: "tc-folded", onclick: () => onExpand(`${sec.key}#show`) }, `Afficher (${rows} lignes)`));
+    }
+    if (budget && !forced) budget.rows -= rows;
+    return h("div", { class: `tc-part tc-part-${sec.part || "props"}` }, head,
+      sec.kind === "code" ? renderCode(sec, opts, onExpand) : renderProps(sec, opts, onExpand));
   }
 
   function renderNode(node, ctx, depth) {
-    const { opts, onExpand, ids } = ctx;
+    const { opts, onExpand, ids, budget } = ctx;
     const id = `tcn-${ids.next++}`;
     node.domId = id;
     const parts = node.parts
       .filter((p) => p.status !== "unchanged" || opts.showUnchanged)
-      .map((p) => renderPart(p, opts, onExpand))
+      .map((p) => renderPart(p, opts, onExpand, budget))
       .filter(Boolean);
     const shownChildren = node.children.filter((c) => c.status !== "unchanged" || opts.showUnchanged);
     const hiddenChildren = node.children.length - shownChildren.length;
@@ -326,6 +385,18 @@
       entry.ui.body.replaceChildren(h("div", { class: "tc-muted tc-pad" }, "Téléchargement…"));
       return;
     }
+    const bytes = (entry.base || "").length + (entry.head || "").length;
+    if (bytes > AUTO_ANALYZE_BYTES && !entry.forceAnalyze && !entry.error) {
+      const mo = (bytes / 1e6).toFixed(1).replace(".", ",");
+      T.debug.log("rendu", `analyse différée (${mo} Mo) ${entry.path}`);
+      entry.ui.body.classList.remove("tc-file-pending");
+      entry.ui.body.replaceChildren(
+        h("div", { class: "tc-muted tc-pad" },
+          `Fichier volumineux (${mo} Mo) : analyse à la demande pour ne pas figer la page. `,
+          h("button", { class: "tc-btn tc-btn-inline", onclick: () => { entry.forceAnalyze = true; ctx.refill(entry); } }, "Analyser"))
+      );
+      return;
+    }
     entry.ui.filled = true;
     const a = analyze(entry, ctx.opts);
     const endRender = T.debug.time("rendu", entry.path);
@@ -341,7 +412,18 @@
     entry.ui.badge.replaceWith((entry.ui.badge = badge(a.status)));
     entry.ui.body.classList.remove("tc-file-pending");
     entry.ui.body.replaceChildren(...parts);
+    // Après le rendu (les nœuds ont reçu leur domId) : résumé léger pour la navigation.
+    if (a.nodes) {
+      entry.navStatus = a.status;
+      entry.navMembers = summarize(a.nodes.length === 1 ? a.nodes[0].children : a.nodes);
+    }
     endRender({ noeuds: entry.ui.body.getElementsByTagName("*").length });
+  }
+
+  // Copie minimale d'un sous-arbre (type, nom, état, enfants) : de quoi dessiner la navigation
+  // sans garder les diffs en mémoire.
+  function summarize(nodes) {
+    return nodes.map((n) => ({ key: n.key, kind: n.kind, label: n.label, status: n.status, domId: n.domId, children: summarize(n.children) }));
   }
 
   // ---------- Navigation (arborescence des fichiers et de leurs membres) ----------
@@ -381,13 +463,13 @@
   }
 
   function renderNav(entries, ctx) {
-    const navNode = (node, depth) => {
+    const navNode = (node, depth, file) => {
       // Get/Set restent dans le contenu ; la navigation s'arrête à la propriété.
       if (node.kind === "Get" || node.kind === "Set") return null;
       if (node.status === "unchanged" && !ctx.opts.showUnchanged) return null;
-      const kids = node.children.map((c) => navNode(c, depth + 1)).filter(Boolean);
+      const kids = node.children.map((c) => navNode(c, depth + 1, file)).filter(Boolean);
       return h("li", {},
-        h("a", { class: `tc-nav-item tc-st-${node.status}`, href: "#", onclick: (e) => { e.preventDefault(); scrollToId(node.domId); } },
+        h("a", { class: `tc-nav-item tc-st-${node.status}`, href: "#", onclick: (e) => { e.preventDefault(); scrollToId((node.domId && document.getElementById(node.domId) && node.domId) || file.domId); } },
           kindTag(node), h("span", {}, shortLabel(node))),
         kids.length ? h("ul", {}, kids) : null);
     };
@@ -397,13 +479,10 @@
         items.push(h("li", {}, h("div", { class: "tc-nav-folder" }, "📁 ", c.name), h("ul", {}, navFolder(c))));
       }
       for (const e of f.files.slice().sort((x, y) => x.path.localeCompare(y.path))) {
-        // Pas d'analyse forcée ici : les membres apparaissent quand le fichier a été affiché.
-        const c = analysisCache.get(e);
-        const a = c && c.ignoreWs === ctx.opts.ignoreWs ? c.value : { status: e.error ? "modified" : e.status };
+        // Pas d'analyse forcée ici : les membres apparaissent quand le fichier a été affiché une fois.
+        const a = { status: e.navStatus || (e.error ? "modified" : e.status) };
         const name = e.path.split("/").pop();
-        // Membres du fichier : enfants de l'objet principal (méthodes, propriétés...), ou ses groupes.
-        const members = a.nodes ? (a.nodes.length === 1 ? a.nodes[0].children : a.nodes) : [];
-        const kids = members.map((n) => navNode(n, 1)).filter(Boolean);
+        const kids = (e.navMembers || []).map((n) => navNode(n, 1, e)).filter(Boolean);
         items.push(h("li", {},
           h("a", { class: `tc-nav-item tc-nav-file tc-st-${a.status}`, href: "#", onclick: (ev) => { ev.preventDefault(); scrollToId(e.domId); } },
             h("span", { class: "tc-dot" }), h("span", {}, name)),
@@ -458,24 +537,61 @@
         return;
       }
       // Contexte propre au fichier : déplier des lignes ne redessine que ce fichier.
+      const refill = () => {
+        entry.ui.filled = false;
+        fill(entry);
+      };
       const fctx = Object.assign({}, ctx, {
         onExpand: (key) => {
           opts.expanded.add(key);
-          entry.ui.filled = false;
-          fill(entry);
+          refill();
         },
+        refill,
+        budget: { rows: FILE_ROW_BUDGET },
       });
       fillFileBody(entry, fctx);
       scheduleNav();
     };
 
-    // Remplit les cartes à l'approche de la zone visible (marge d'un écran et demi).
+    // File de remplissage : un fichier par tâche, pour que la page reste réactive entre deux analyses.
+    const fillQueue = [];
+    let fillRunning = false;
+    const queueFill = (entry) => {
+      if (!fillQueue.includes(entry)) fillQueue.push(entry);
+      if (fillRunning) return;
+      fillRunning = true;
+      const step = () => {
+        const next = fillQueue.shift();
+        if (!next) {
+          fillRunning = false;
+          return;
+        }
+        fill(next);
+        setTimeout(step, 0);
+      };
+      setTimeout(step, 0);
+    };
+
+    // Virtualisation, comme la vue « Files changed » de GitHub : une carte est montée quand elle
+    // approche de l'écran (marge d'un écran et demi) et démontée quand elle s'en éloigne, remplacée
+    // par un bloc vide de même hauteur. Le coût ne dépend que de ce qui est à l'écran.
+    const unmount = (entry) => {
+      if (!entry.ui || !entry.ui.filled) return;
+      const height = entry.ui.body.offsetHeight;
+      entry.ui.filled = false;
+      entry.ui.body.replaceChildren(h("div", { class: "tc-placeholder", style: `height:${height}px` }));
+      T.debug.log("rendu", `démonté ${entry.path}`, { px: height });
+    };
     const observer = new IntersectionObserver(
       (items) => {
         for (const it of items) {
-          if (!it.isIntersecting) continue;
-          observer.unobserve(it.target);
-          fill(it.target.tcEntry);
+          const entry = it.target.tcEntry;
+          if (it.isIntersecting) queueFill(entry);
+          else {
+            const i = fillQueue.indexOf(entry);
+            if (i >= 0) fillQueue.splice(i, 1);
+            unmount(entry);
+          }
         }
       },
       { root: main, rootMargin: "1500px 0px" }
@@ -486,8 +602,8 @@
     const appendShell = (entry, i) => {
       const card = renderFileShell(entry, i);
       main.append(card);
-      if (i < EAGER) fill(entry);
-      else observer.observe(card);
+      observer.observe(card);
+      if (i < EAGER) queueFill(entry);
     };
 
     // Remplace la carte d'un fichier arrivé après coup, à sa place.
@@ -498,8 +614,8 @@
         observer.unobserve(old);
         old.replaceWith(card);
       } else main.append(card);
-      if (i < EAGER) fill(entry);
-      else observer.observe(card);
+      observer.observe(card);
+      if (i < EAGER) queueFill(entry);
     };
 
     const rerender = () => {

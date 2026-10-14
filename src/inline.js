@@ -211,10 +211,12 @@
 
   function processTable(table) {
     const path = tablePath(table);
-    if (!path || !T.isTwinCatPath(path)) return;
+    if (!path || !PLC_EXT_RE.test(path)) return;
     const st = fileState(path);
     requestExact(st, table);
     const stamp = st.exact ? `x${st.version}` : "h";
+    const rowCount = table.querySelectorAll("tr.diff-line-row").length;
+    if (rowCount > 3000) T.debug.mark("intégré", `grosse table ${path.split("/").pop()}`, { lignes: rowCount });
     const end = T.debug.time("intégré", `passe ${path.split("/").pop()}`, { mode: st.exact ? "exact" : "heuristique" });
 
     const rows = table.querySelectorAll("tr.diff-line-row");
@@ -335,14 +337,30 @@
     queued = false;
     if (!enabled) return;
     const t0 = performance.now();
+    let deferred = false;
     for (const table of [...dirty]) {
+      if (!table.isConnected || !isNear(table)) {
+        dirty.delete(table);
+        continue;
+      }
+      // Une table que GitHub remplit par morceaux déclencherait une passe complète par morceau
+      // (coût quadratique) : au plus une passe toutes les 400 ms par table.
+      const since = performance.now() - (table.tcrLastPass || 0);
+      if (since < 400) {
+        deferred = true;
+        continue;
+      }
       dirty.delete(table);
-      if (!table.isConnected || !isNear(table)) continue;
+      table.tcrLastPass = performance.now();
       processTable(table);
       if (performance.now() - t0 > 12 && dirty.size) {
         markDirty(null);
         return;
       }
+    }
+    if (deferred && !queued) {
+      queued = true;
+      setTimeout(runQueue, 400);
     }
   }
 
@@ -361,7 +379,9 @@
     for (const table of document.querySelectorAll("table[data-diff-anchor]")) {
       if (table.tcrWatched) continue;
       const path = tablePath(table);
-      if (!path || !T.isTwinCatPath(path)) continue;
+      // Objets PLC seulement : sur les .tsproj/.xti/.plcproj (souvent énormes), la mise en forme
+      // n'apporterait presque rien et coûterait cher ; le panneau les présente en propriétés.
+      if (!path || !PLC_EXT_RE.test(path)) continue;
       table.tcrWatched = true;
       viewObs.observe(table);
       dirty.add(table);

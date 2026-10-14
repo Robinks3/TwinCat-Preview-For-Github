@@ -166,7 +166,7 @@
   function describeUrl(path) {
     if (/\.diff$/.test(path)) return ".diff";
     if (/\.patch$/.test(path)) return ".patch";
-    const m = /\/raw\/[0-9a-f]{40}\/(.*)$/.exec(path);
+    const m = /\/raw\/(?:[0-9a-f]{40}|refs\/heads\/.+?)\/((?:[^/]+\/)*[^/]+\.[^/]+)$/.exec(path);
     return m ? `raw ${decodeURIComponent(m[1])}` : path;
   }
 
@@ -205,14 +205,16 @@
     return !f.binary && f.status !== "added" && f.status !== "removed";
   }
 
-  async function loadEntry(pr, f, headSha) {
+  // rawBase : préfixe des fichiers bruts de la version après, par SHA (/o/r/raw/<sha>)
+  // ou par branche (/o/r/raw/refs/heads/<branche>).
+  async function loadEntry(pr, f, rawBase) {
     const entry = { path: f.newPath || f.oldPath, oldPath: f.oldPath, status: f.status, base: null, head: null, error: null };
     try {
       if (f.binary) throw new Error("fichier traité comme binaire par GitHub");
       if (f.status === "removed") entry.base = textFromHunks(f.hunks, "-");
       else if (f.status === "added") entry.head = textFromHunks(f.hunks, "+");
       else {
-        entry.head = await fetchText(`/${pr.owner}/${pr.repo}/raw/${headSha}/${encodePath(f.newPath)}`, true);
+        entry.head = await fetchText(`${rawBase}/${encodePath(f.newPath)}`, true);
         entry.base = reverseApply(entry.head, f.hunks);
       }
     } catch (e) {
@@ -268,26 +270,39 @@
       headSha: null,
     };
 
+    // Source de la version après, essayée dans l'ordre et vérifiée sur un premier fichier :
+    //   1. SHA lu dans la page ; 2. branche de tête affichée dans la page ; 3. SHA du .patch (lourd).
     let shaPromise = null;
     const resolveSha = (firstFile) => {
       if (!shaPromise) {
         shaPromise = (async () => {
-          const end = dbg().time("sha", "résolution du SHA de tête", { indice: opts.headShaHint ? "page" : "aucun" });
+          const end = dbg().time("sha", "résolution de la version après", {
+            indice_sha: opts.headShaHint ? "oui" : "non",
+            indice_branche: opts.headRefHint ? "oui" : "non",
+          });
+          const candidates = [];
           if (opts.headShaHint) {
-            const e = await loadEntry(pr, firstFile, opts.headShaHint);
+            candidates.push({ source: "page", label: opts.headShaHint, rawBase: `/${pr.owner}/${pr.repo}/raw/${opts.headShaHint}` });
+          }
+          if (opts.headRefHint) {
+            const r = opts.headRefHint;
+            candidates.push({ source: "branche", label: r.ref, rawBase: `/${r.owner}/${r.repo}/raw/refs/heads/${encodePath(r.ref)}` });
+          }
+          for (const c of candidates) {
+            const e = await loadEntry(pr, firstFile, c.rawBase);
             if (!e.error) {
-              stats.shaSource = "page";
-              stats.headSha = opts.headShaHint;
-              end({ source: "page" });
-              return { sha: opts.headShaHint, file: firstFile, entry: e };
+              stats.shaSource = c.source;
+              stats.headSha = c.label;
+              end({ source: c.source });
+              return { rawBase: c.rawBase, file: firstFile, entry: e };
             }
-            dbg().log("sha", "SHA de la page refusé", { erreur: e.error });
+            dbg().log("sha", `source « ${c.source} » refusée`, { erreur: e.error });
           }
           const sha = await headShaFromPatch(pr);
           stats.shaSource = ".patch";
           stats.headSha = sha;
           end({ source: ".patch" });
-          return { sha };
+          return { rawBase: `/${pr.owner}/${pr.repo}/raw/${sha}` };
         })();
       }
       return shaPromise;
@@ -303,7 +318,7 @@
         : limit(async () => {
             try {
               const s = await resolveSha(f);
-              const e = s.file === f ? s.entry : await loadEntry(pr, f, s.sha);
+              const e = s.file === f ? s.entry : await loadEntry(pr, f, s.rawBase);
               stats.fetched++;
               return e;
             } catch (err) {

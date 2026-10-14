@@ -75,7 +75,11 @@
 .tc-pad { padding: 8px 12px; }
 .tc-error { color: var(--tc-danger); padding: 8px 12px; }
 
-.tc-file { border: 1px solid var(--tc-border); border-radius: 8px; overflow: hidden; flex-shrink: 0; }
+.tc-file {
+  border: 1px solid var(--tc-border); border-radius: 8px; overflow: hidden; flex-shrink: 0;
+  /* Hors écran : ni mise en page ni dessin (comme GitHub) ; hauteur mémorisée pour la barre de défilement. */
+  content-visibility: auto; contain-intrinsic-size: auto 300px;
+}
 .tc-file > summary { list-style: none; cursor: pointer; }
 .tc-file > summary::-webkit-details-marker { display: none; }
 .tc-file-pending { min-height: 120px; }
@@ -211,3 +215,8 @@ td[data-tcr-part="impl"] > .tcr-banner { background: var(--bgColor-success-muted
 .tcr-code .tc-num { color: var(--color-prettylights-syntax-constant, #0550ae); }
 .tcr-code .tc-com { color: var(--color-prettylights-syntax-comment, #59636e); font-style: italic; }
 .tcr-code .tc-pragma { color: var(--color-prettylights-syntax-variable, #953800); }
+
+.tc-props tr.tc-more td { color: var(--tc-accent); background: var(--tc-bg2); cursor: pointer; font-family: inherit; }
+.tc-btn-inline { border: 1px solid var(--tc-border); margin-left: 6px; }
+.tc-folded { padding: 6px 12px; color: var(--tc-accent); background: var(--tc-bg2); cursor: pointer; font-size: 12px; }
+.tc-folded:hover { text-decoration: underline; }

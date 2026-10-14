@@ -17,9 +17,14 @@
 //   0.1.13 - debug.js + instrumentation : mode debug (journal des requêtes, SHA, analyse, rendu) et rapport copiable pour diagnostiquer les lenteurs.
 //   0.1.14 - inline.js : mise en forme dans le diff GitHub lui-même (bruit masqué, ST sans CDATA, bandeaux de section), commentaires conservés.
 //   0.1.15 - content.js : barre d'outils (intégré / panneau / debug), chargeur partagé, l'icône de l'extension active la mise en forme intégrée.
+//   0.1.16 - github.js/content.js : version après lue par la branche de tête de la page avant le repli sur le .patch (SHA absent après navigation sans rechargement).
+//   0.1.17 - inline.js : objets PLC seulement (plus les .tsproj/.xti géants) et une passe au plus toutes les 400 ms par table (coût quadratique sur grosse PR).
+//   0.1.18 - ui.js : analyse d'un fichier à la fois, analyse sur clic au-delà de 1,5 Mo, listes plafonnées avec « afficher la suite ».
+//   0.1.19 - debug.js : journal sauvegardé en continu (rapport précédent après une page figée), repères « début » et tâches longues.
+//   0.1.20 - ui.js : virtualisation du panneau comme GitHub (démontage hors écran, cache d'analyses borné, budget de 800 lignes par fichier).
 
 (function (root) {
-  const SCRIPT_VERSION = "0.1.15";
+  const SCRIPT_VERSION = "0.1.20";
   const SCRIPT_DATE = "2026-10-14";
 
   const api = { SCRIPT_VERSION, SCRIPT_DATE };

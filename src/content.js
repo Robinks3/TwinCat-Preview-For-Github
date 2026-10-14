@@ -20,9 +20,22 @@
   function headShaFromPage() {
     const shas = new Set();
     for (const s of document.querySelectorAll('script[type="application/json"]')) {
-      for (const m of s.textContent.matchAll(/"headOid"\s*:\s*"([0-9a-f]{40})"/g)) shas.add(m[1]);
+      for (const m of s.textContent.matchAll(/"head(?:Oid|Sha)"\s*:\s*"([0-9a-f]{40})"/g)) shas.add(m[1]);
     }
     return shas.size === 1 ? [...shas][0] : null;
+  }
+
+  // Branche de tête affichée dans l'en-tête de la PR (« ... into base from tête ») : dernier lien
+  // de branche du bloc. Toujours présente, y compris quand on arrive sur « Files changed » sans
+  // rechargement (les données embarquées ne contiennent alors pas le SHA).
+  function headRefFromPage() {
+    for (const box of document.querySelectorAll('[class*="branches"]')) {
+      const links = [...box.querySelectorAll('a[href*="/tree/"]')];
+      const last = links[links.length - 1];
+      const m = last && /^\/([^/]+)\/([^/]+)\/tree\/(.+)$/.exec(last.getAttribute("href") || "");
+      if (m && links.length >= 2) return { owner: m[1], repo: m[2], ref: decodeURIComponent(m[3]) };
+    }
+    return null;
   }
 
   // Un chargeur par PR, partagé par la vue intégrée et le panneau, gardé pour la page :
@@ -31,9 +44,14 @@
     const id = prId(pr);
     if (forceReload || !loaders.has(id)) {
       const sha = headShaFromPage();
-      T.debug.log("chargeur", `création pour ${id}`, { sha_page: sha ? sha.slice(0, 7) : "absent" });
+      const ref = headRefFromPage();
+      T.debug.log("chargeur", `création pour ${id}`, {
+        sha_page: sha ? sha.slice(0, 7) : "absent",
+        branche: ref ? `${ref.owner}/${ref.repo}:${ref.ref}` : "absente",
+      });
       const p = T.createPrLoader(pr, T.isTwinCatPath, {
         headShaHint: sha,
+        headRefHint: ref,
         onProgress: (t) => progressListeners.forEach((l) => l(t)),
       });
       p.catch((e) => {
@@ -183,6 +201,26 @@
         T.h("strong", {}, "Debug TcPR"),
         T.h("span", { class: "tc-spacer" }),
         copyBtn,
+        T.h("button", {
+          class: "tc-btn",
+          title: "Journal sauvegardé de la session précédente (utile après une page figée)",
+          onclick: async (e) => {
+            const prev = T.debug.previousReport();
+            const btn = e.currentTarget;
+            if (!prev) {
+              btn.textContent = "Aucun";
+            } else {
+              try {
+                await navigator.clipboard.writeText(prev);
+                btn.textContent = "Copié ✓";
+              } catch (err) {
+                list.textContent = prev;
+                btn.textContent = "Affiché ci-dessous";
+              }
+            }
+            setTimeout(() => (btn.textContent = "Rapport précédent"), 2500);
+          },
+        }, "Rapport précédent"),
         T.h("button", { class: "tc-btn", onclick: () => { T.debug.clear(); render(); } }, "Vider"),
         T.h("button", { class: "tc-btn", onclick: () => { T.debug.setEnabled(false); debugPanel.close(); } }, "Désactiver"),
         T.h("button", { class: "tc-btn", title: "Fermer (le journal continue)", onclick: () => debugPanel.close() }, "✕")),
