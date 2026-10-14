@@ -233,6 +233,36 @@ test("parseUnifiedDiff : ajout, suppression, renommage", () => {
   assert.strictEqual(f[0].hunks[0].lines.length, 2);
 });
 
+test("diffLines (Myers) : reconstruction exacte et diff minimal sur 2000 cas aléatoires", () => {
+  const lcs = (a, b) => {
+    const L = [...Array(a.length + 1)].map(() => new Array(b.length + 1).fill(0));
+    for (let i = a.length - 1; i >= 0; i--)
+      for (let j = b.length - 1; j >= 0; j--) L[i][j] = a[i] === b[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+    return L[0][0];
+  };
+  let seed = 42;
+  const rnd = (n) => ((seed = (seed * 1103515245 + 12345) % 2147483648), seed % n);
+  for (let t = 0; t < 2000; t++) {
+    const gen = () => Array.from({ length: rnd(30) }, () => "abcde"[rnd(5)]);
+    const a = gen();
+    const b = gen();
+    const ops = D.diffLines(a.join("\n"), b.join("\n"));
+    assert.strictEqual(ops.filter((o) => o.t !== "+").map((o) => o.text).join("\n"), a.join("\n"));
+    assert.strictEqual(ops.filter((o) => o.t !== "-").map((o) => o.text).join("\n"), b.join("\n"));
+    assert.strictEqual(ops.filter((o) => o.t === "=").length, lcs(a, b), `cas ${t}`);
+  }
+});
+
+test("diffLines : gros fichier rapide, repli en bloc si tout change", () => {
+  const big = Array.from({ length: 20000 }, (_, i) => `ligne ${i}`);
+  const t0 = Date.now();
+  const ops = D.diffLines(big.join("\n"), big.map((l, i) => (i % 50 ? l : `${l} modifiée`)).join("\n"));
+  assert.strictEqual(ops.filter((o) => o.t !== "=").length, 800);
+  assert.ok(Date.now() - t0 < 2000);
+  const rev = D.diffLines(big.join("\n"), big.slice().reverse().join("\n"));
+  assert.strictEqual(rev.length, 40000);
+});
+
 test("lignes : ST sans enveloppe, échafaudage, bruit LineIds et GUID", () => {
   const src = read("FB_InputWithPropertiesAndMethods.TcPOU").replace(
     "  </POU>",

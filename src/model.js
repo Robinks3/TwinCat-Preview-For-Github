@@ -1,6 +1,8 @@
 // Modèle structuré d'un fichier TwinCAT : liste de sections comparables entre deux versions.
 //
-// Section : { key, label, kind: "code" | "props", lang?: "st" | "xml", text?, props?: {clé: valeur} }
+// Section : { key, label, kind: "code" | "props", lang?: "st" | "xml", text?, props?: {clé: valeur},
+//             tree: [{ key, kind, label }] (place dans l'arborescence TwinCAT : POU > Propriété > Get),
+//             part: "attrs" | "decl" | "impl" | "props" (rôle de la section dans son nœud) }
 // Le bruit (LineIds, GUID, ProductVersion/TcVersion) est retiré du modèle et résumé dans `noise`
 // pour pouvoir dire « seul du bruit XML a changé ».
 
@@ -95,28 +97,33 @@
   }
 
   // Sections d'un objet PLC et de ses sous-objets (méthodes, actions, transitions, propriétés).
-  function plcObjectSections(el, keyPrefix, labelPrefix, noise, out) {
+  // `tree` : chemin du nœud courant dans l'arborescence, recopié dans chaque section.
+  function plcObjectSections(el, keyPrefix, labelPrefix, noise, out, tree) {
+    const push = (sec) => out.push(Object.assign(sec, { tree }));
     const props = attrProps(el, new Set(["Name"]), noise);
     if (Object.keys(props).length) {
-      out.push({ key: `${keyPrefix}#attrs`, label: `${labelPrefix} · attributs`, kind: "props", props });
+      push({ key: `${keyPrefix}#attrs`, label: `${labelPrefix} · attributs`, kind: "props", props, part: "attrs" });
     }
     for (const c of el.children) {
       if (c.tag === "Declaration") {
-        out.push({ key: `${keyPrefix}#decl`, label: `${labelPrefix} · déclaration`, kind: "code", lang: "st", text: cleanCode(c.text) });
+        push({ key: `${keyPrefix}#decl`, label: `${labelPrefix} · déclaration`, kind: "code", lang: "st", text: cleanCode(c.text), part: "decl" });
       } else if (c.tag === "Implementation") {
-        out.push(implementationSection(c, `${keyPrefix}#impl`, `${labelPrefix} · implémentation`));
+        push(Object.assign(implementationSection(c, `${keyPrefix}#impl`, `${labelPrefix} · implémentation`), { part: "impl" }));
       } else if (CHILD_LABELS[c.tag]) {
         const name = c.attrs.Name || "?";
         const folder = c.attrs.FolderPath ? `${c.attrs.FolderPath.replace(/\\$/, "")}\\` : "";
-        plcObjectSections(c, `${keyPrefix}/${c.tag}:${name}`, `${CHILD_LABELS[c.tag]} ${folder}${name}`, noise, out);
+        const key = `${keyPrefix}/${c.tag}:${name}`;
+        const label = `${CHILD_LABELS[c.tag]} ${folder}${name}`;
+        plcObjectSections(c, key, label, noise, out, tree.concat({ key, kind: c.tag, label }));
       } else if (c.tag === "Get" || c.tag === "Set") {
-        plcObjectSections(c, `${keyPrefix}/${c.tag}`, `${labelPrefix} · ${c.tag}`, noise, out);
+        const key = `${keyPrefix}/${c.tag}`;
+        plcObjectSections(c, key, `${labelPrefix} · ${c.tag}`, noise, out, tree.concat({ key, kind: c.tag, label: c.tag }));
       } else if (c.tag === "Folder") {
         // Simple dossier d'organisation dans l'arbre du projet, sans contenu.
       } else {
         const p = {};
         flatten(c, "", p, noise, []);
-        if (Object.keys(p).length) out.push({ key: `${keyPrefix}/${c.tag}`, label: `${labelPrefix} · ${c.tag}`, kind: "props", props: p });
+        if (Object.keys(p).length) push({ key: `${keyPrefix}/${c.tag}`, label: `${labelPrefix} · ${c.tag}`, kind: "props", props: p, part: "props" });
       }
     }
   }
@@ -133,9 +140,12 @@
         // Tâche (.TcTTO) : tout en propriétés, les GUID internes partent dans le bruit.
         const props = {};
         flatten(obj, "", props, noise, ["Name"]);
-        sections.push({ key: `${obj.tag}:${name}`, label: `Tâche ${name}`, kind: "props", props });
+        const key = `${obj.tag}:${name}`;
+        sections.push({ key, label: `Tâche ${name}`, kind: "props", props, part: "props", tree: [{ key, kind: "Task", label: `Tâche ${name}` }] });
       } else {
-        plcObjectSections(obj, `${obj.tag}:${name}`, kindWord === name ? name : `${kindWord} ${name}`, noise, sections);
+        const key = `${obj.tag}:${name}`;
+        const label = kindWord === name ? name : `${kindWord} ${name}`;
+        plcObjectSections(obj, key, label, noise, sections, [{ key, kind: obj.tag, label }]);
       }
     }
     return { title, sections };
@@ -224,7 +234,7 @@
       if (!groups.has(g)) groups.set(g, {});
       groups.get(g)[k] = v;
     }
-    const sections = [...groups].map(([g, p]) => ({ key: g, label: g, kind: "props", props: p }));
+    const sections = [...groups].map(([g, p]) => ({ key: g, label: g, kind: "props", props: p, part: "props", tree: [{ key: g, kind: "Group", label: g }] }));
     return { title: rootEl.tag, sections };
   }
 

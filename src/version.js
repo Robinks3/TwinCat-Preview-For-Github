@@ -8,9 +8,12 @@
 //   0.1.4 - ui.js/content.js : statut affiché dès l'ouverture et étapes de chargement (le panneau restait vide sans indication sur une grosse PR).
 //   0.1.5 - github.js/content.js loadPrFiles : SHA de tête lu dans la page (headOid), vérifié sur un fichier, repli sur le .patch (trop lourd sur une grosse PR).
 //   0.1.6 - github.js loadPrFiles : téléchargement des fichiers en parallèle (6 à la fois), affichage toujours dans l'ordre du diff.
+//   0.1.7 - diff.js diffLines : diff de Myers au lieu d'une table LCS N×M (centaines de Mo sur un gros POU, plantage sur les grosses PR).
+//   0.1.8 - model.js/ui.js : affichage en arborescence TwinCAT (POU > méthodes/propriétés > Get/Set), déclaration et code distincts, navigation à gauche.
+//   0.1.9 - ui.js createOverlay : rendu progressif des fichiers (en-tête immédiat, contenu à l'approche de l'écran), plus de redessin complet par fichier reçu.
 
 (function (root) {
-  const SCRIPT_VERSION = "0.1.6";
+  const SCRIPT_VERSION = "0.1.9";
   const SCRIPT_DATE = "2026-10-14";
 
   const api = { SCRIPT_VERSION, SCRIPT_DATE };

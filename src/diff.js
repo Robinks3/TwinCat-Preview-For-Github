@@ -24,33 +24,16 @@
     const ops = [];
     for (let i = 0; i < pre; i++) ops.push({ t: "=", a: i + 1, b: i + 1, text: b[i] });
 
-    if (n * m > 25e6) {
-      // Garde-fou mémoire : bloc remplacé en entier plutôt que de bloquer l'onglet.
+    const mid = myers(ka.slice(pre, a.length - suf), kb.slice(pre, b.length - suf));
+    if (!mid) {
+      // Trop de différences : bloc remplacé en entier plutôt que de bloquer l'onglet.
       for (let i = 0; i < n; i++) ops.push({ t: "-", a: pre + i + 1, text: a[pre + i] });
       for (let j = 0; j < m; j++) ops.push({ t: "+", b: pre + j + 1, text: b[pre + j] });
     } else {
-      // Table LCS sur la partie centrale, remplie depuis la fin.
-      const w = m + 1;
-      const L = new Uint32Array((n + 1) * w);
-      for (let i = n - 1; i >= 0; i--) {
-        for (let j = m - 1; j >= 0; j--) {
-          L[i * w + j] = ka[pre + i] === kb[pre + j] ? L[(i + 1) * w + j + 1] + 1 : Math.max(L[(i + 1) * w + j], L[i * w + j + 1]);
-        }
-      }
-      let i = 0;
-      let j = 0;
-      while (i < n || j < m) {
-        if (i < n && j < m && ka[pre + i] === kb[pre + j]) {
-          ops.push({ t: "=", a: pre + i + 1, b: pre + j + 1, text: b[pre + j] });
-          i++;
-          j++;
-        } else if (j < m && (i >= n || L[i * w + j + 1] >= L[(i + 1) * w + j])) {
-          ops.push({ t: "+", b: pre + j + 1, text: b[pre + j] });
-          j++;
-        } else {
-          ops.push({ t: "-", a: pre + i + 1, text: a[pre + i] });
-          i++;
-        }
+      for (const [t, i, j] of mid) {
+        if (t === "=") ops.push({ t, a: pre + i + 1, b: pre + j + 1, text: b[pre + j] });
+        else if (t === "-") ops.push({ t, a: pre + i + 1, text: a[pre + i] });
+        else ops.push({ t, b: pre + j + 1, text: b[pre + j] });
       }
       // Présentation : les suppressions avant les ajouts dans chaque bloc modifié.
       reorderBlocks(ops, pre);
@@ -60,6 +43,58 @@
       ops.push({ t: "=", a: a.length - suf + k + 1, b: b.length - suf + k + 1, text: b[b.length - suf + k] });
     }
     return ops;
+  }
+
+  // Diff de Myers (celui de git) : O((N+M)·D) en temps, O(D²) en mémoire, D = nombre de différences.
+  // Renvoie [["=", i, j] | ["-", i] | ["+", , j]] dans l'ordre, ou null si D dépasse MAX_D.
+  const MAX_D = 2500;
+
+  function myers(a, b) {
+    const n = a.length;
+    const m = b.length;
+    const max = n + m;
+    const off = max + 1;
+    const V = new Int32Array(2 * max + 3);
+    const trace = []; // trace[d] : valeurs de V pour k ∈ [-d, d] au début de l'étape d
+    for (let d = 0; d <= max; d++) {
+      if (d > MAX_D) return null;
+      const snap = new Int32Array(2 * d + 1);
+      for (let k = -d; k <= d; k++) snap[k + d] = V[off + k];
+      trace.push(snap);
+      for (let k = -d; k <= d; k += 2) {
+        let x = k === -d || (k !== d && V[off + k - 1] < V[off + k + 1]) ? V[off + k + 1] : V[off + k - 1] + 1;
+        let y = x - k;
+        while (x < n && y < m && a[x] === b[y]) {
+          x++;
+          y++;
+        }
+        V[off + k] = x;
+        if (x >= n && y >= m) return backtrack(trace, n, m);
+      }
+    }
+    return null;
+  }
+
+  function backtrack(trace, n, m) {
+    const out = [];
+    let x = n;
+    let y = m;
+    for (let d = trace.length - 1; d >= 0; d--) {
+      if (d === 0) {
+        while (x > 0 && y > 0) out.push(["=", --x, --y]);
+        break;
+      }
+      const v = trace[d];
+      const get = (k) => v[k + d];
+      const k = x - y;
+      const prevK = k === -d || (k !== d && get(k - 1) < get(k + 1)) ? k + 1 : k - 1;
+      const prevX = get(prevK);
+      const prevY = prevX - prevK;
+      while (x > prevX && y > prevY) out.push(["=", --x, --y]);
+      if (x === prevX) out.push(["+", undefined, --y]);
+      else out.push(["-", --x]);
+    }
+    return out.reverse();
   }
 
   function reorderBlocks(ops, from) {
@@ -164,7 +199,7 @@
       const sb = bMap.get(key);
       const ref = sb || sa;
       const status = !sa ? "added" : !sb ? "removed" : sectionEqual(sa, sb, opts) ? "unchanged" : "modified";
-      const d = { key, label: ref.label, kind: ref.kind, lang: ref.lang, status };
+      const d = { key, label: ref.label, kind: ref.kind, lang: ref.lang, status, tree: ref.tree, part: ref.part };
       if (ref.kind === "code") {
         d.ops = diffLines(sa && sa.kind === "code" ? sa.text : "", sb && sb.kind === "code" ? sb.text : "", opts);
       } else {
