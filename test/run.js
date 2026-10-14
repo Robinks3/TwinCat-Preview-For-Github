@@ -233,4 +233,32 @@ test("parseUnifiedDiff : ajout, suppression, renommage", () => {
   assert.strictEqual(f[0].hunks[0].lines.length, 2);
 });
 
+test("lignes : ST sans enveloppe, échafaudage, bruit LineIds et GUID", () => {
+  const src = read("FB_InputWithPropertiesAndMethods.TcPOU").replace(
+    "  </POU>",
+    '    <LineIds Name="FB_Child">\n      <LineId Id="3" Count="0" />\n    </LineIds>\n  </POU>'
+  );
+  const r = L.classifyLines("a.TcPOU", src);
+  const at = (n) => r.lines[n];
+  assert.strictEqual(at(3).role, "scaffold");
+  assert.deepStrictEqual(at(4), {
+    role: "code",
+    section: "POU:FB_Child#decl",
+    label: "FUNCTION_BLOCK FB_Child · déclaration",
+    code: "FUNCTION_BLOCK  FB_Child EXTENDS FB_Base  IMPLEMENTS I_Interface,I_Interface2",
+    start: true,
+  });
+  assert.strictEqual(at(12).code, "END_VAR");
+  assert.strictEqual(at(37).label, "Méthode AddTwoInts · implémentation");
+  assert.strictEqual(at(56).role, "scaffold"); // « ]]></Declaration> » seul sur sa ligne
+  assert.deepStrictEqual([92, 93, 94].map((n) => at(n).role), ["noise", "noise", "noise"]);
+  const t = L.classifyLines("t.TcTTO", read("PlcTask.TcTTO"));
+  assert.strictEqual(t.lines[5].role, "config");
+  assert.strictEqual(t.lines[10].role, "noise");
+  assert.strictEqual(
+    L.noiseKey('<POU Name="A" Id="{16c60171-46ae-4c0f-982d-d26906c8a65a}">'),
+    L.noiseKey('<POU Name="A" Id="{00000000-46ae-4c0f-982d-d26906c8a65a}">')
+  );
+});
+
 console.log(`\n${passed} test(s) réussi(s)${process.exitCode ? ", avec des échecs" : ""}`);
