@@ -22,9 +22,12 @@
 //   0.1.18 - ui.js : analyse d'un fichier à la fois, analyse sur clic au-delà de 1,5 Mo, listes plafonnées avec « afficher la suite ».
 //   0.1.19 - debug.js : journal sauvegardé en continu (rapport précédent après une page figée), repères « début » et tâches longues.
 //   0.1.20 - ui.js : virtualisation du panneau comme GitHub (démontage hors écran, cache d'analyses borné, budget de 800 lignes par fichier).
+//   0.1.21 - github.js createPrLoader : version après vérifiée sur le plus petit objet PLC, plus sur le premier fichier venu (un .tsproj de 6 Mo retardait tout).
+//   0.1.22 - github.js/ui.js : fichiers lourds (.tsproj, .tmc, diff énorme) téléchargés seulement sur clic.
+//   0.1.23 - ui.js : démontage avec hystérésis (1 500 / 5 000 px) et cache d'analyses borné par volume, plus de réanalyses à chaque aller-retour.
 
 (function (root) {
-  const SCRIPT_VERSION = "0.1.20";
+  const SCRIPT_VERSION = "0.1.23";
   const SCRIPT_DATE = "2026-10-14";
 
   const api = { SCRIPT_VERSION, SCRIPT_DATE };

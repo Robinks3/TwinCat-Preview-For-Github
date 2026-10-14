@@ -256,8 +256,11 @@
   }
 
   // Analyse d'un fichier (modèles + diff + arbre), mise en cache par réglage « ignorer les espaces ».
-  const ANALYSIS_CACHE_MAX = 25;
+  // Cache borné par le volume des fichiers analysés (et non par leur nombre) : les nombreux petits
+  // fichiers restent en cache, quelques gros ne l'évincent pas entièrement.
+  const ANALYSIS_CACHE_BYTES = 40e6;
   const analysisCache = new Map();
+  const sizeOf = (entry) => (entry.base || "").length + (entry.head || "").length;
   const cacheGet = (entry) => {
     const c = analysisCache.get(entry);
     if (c) {
@@ -270,7 +273,13 @@
   const cacheSet = (entry, value) => {
     analysisCache.delete(entry);
     analysisCache.set(entry, value);
-    while (analysisCache.size > ANALYSIS_CACHE_MAX) analysisCache.delete(analysisCache.keys().next().value);
+    let total = 0;
+    for (const k of analysisCache.keys()) total += sizeOf(k);
+    while (total > ANALYSIS_CACHE_BYTES && analysisCache.size > 1) {
+      const oldest = analysisCache.keys().next().value;
+      total -= sizeOf(oldest);
+      analysisCache.delete(oldest);
+    }
   };
 
   function analyze(entry, opts) {
@@ -524,6 +533,16 @@
 
     const fill = (entry) => {
       if (entry.pending) {
+        // Fichier lourd (.tsproj de plusieurs Mo...) : rien n'est téléchargé sans un clic.
+        if (entry.heavy && !entry.allowFetch && !entry.requested) {
+          entry.ui.body.classList.remove("tc-file-pending");
+          entry.ui.body.replaceChildren(
+            h("div", { class: "tc-muted tc-pad" },
+              "Fichier probablement volumineux : téléchargement à la demande. ",
+              h("button", { class: "tc-btn tc-btn-inline", onclick: () => { entry.allowFetch = true; entry.forceAnalyze = true; fill(entry); } }, "Télécharger et analyser"))
+          );
+          return;
+        }
         // Contenu pas encore téléchargé : on le demande maintenant, une seule fois.
         if (loadFn && !entry.requested) {
           entry.requested = true;
@@ -582,7 +601,9 @@
       entry.ui.body.replaceChildren(h("div", { class: "tc-placeholder", style: `height:${height}px` }));
       T.debug.log("rendu", `démonté ${entry.path}`, { px: height });
     };
-    const observer = new IntersectionObserver(
+    // Deux seuils (hystérésis) : montage à 1 500 px de l'écran, démontage seulement au-delà de
+    // 5 000 px, pour qu'un aller-retour de défilement ne refasse pas analyse et rendu.
+    const mountObs = new IntersectionObserver(
       (items) => {
         for (const it of items) {
           const entry = it.target.tcEntry;
@@ -590,12 +611,31 @@
           else {
             const i = fillQueue.indexOf(entry);
             if (i >= 0) fillQueue.splice(i, 1);
-            unmount(entry);
           }
         }
       },
       { root: main, rootMargin: "1500px 0px" }
     );
+    const unmountObs = new IntersectionObserver(
+      (items) => {
+        for (const it of items) if (!it.isIntersecting) unmount(it.target.tcEntry);
+      },
+      { root: main, rootMargin: "5000px 0px" }
+    );
+    const observer = {
+      observe: (el) => {
+        mountObs.observe(el);
+        unmountObs.observe(el);
+      },
+      unobserve: (el) => {
+        mountObs.unobserve(el);
+        unmountObs.unobserve(el);
+      },
+      disconnect: () => {
+        mountObs.disconnect();
+        unmountObs.disconnect();
+      },
+    };
 
     // Les premiers fichiers sont remplis d'office (visibles à l'ouverture), les autres à l'approche.
     const EAGER = 3;
@@ -661,7 +701,7 @@
       },
       updateEntry(i, e) {
         if (!entries[i]) return;
-        Object.assign(entries[i], e, { pending: false, index: i });
+        Object.assign(entries[i], e, { pending: false, index: i, forceAnalyze: entries[i].forceAnalyze });
         analysisCache.delete(entries[i]);
         if (!message) replaceShell(entries[i], i);
         scheduleNav();

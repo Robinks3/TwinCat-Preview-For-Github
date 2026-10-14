@@ -273,8 +273,17 @@
     // Source de la version après, essayée dans l'ordre et vérifiée sur un premier fichier :
     //   1. SHA lu dans la page ; 2. branche de tête affichée dans la page ; 3. SHA du .patch (lourd).
     let shaPromise = null;
-    const resolveSha = (firstFile) => {
+    // Fichier témoin pour vérifier une source : le plus petit possible (objet PLC, peu de lignes de diff),
+    // jamais un .tsproj de plusieurs Mo qui retarderait tout le reste.
+    const hunkLines = (f) => f.hunks.reduce((n, h) => n + h.lines.length, 0);
+    const pickProbe = () =>
+      files
+        .filter(needsFetch)
+        .map((f) => ({ f, rank: (/\.(tcpou|tcdut|tcgvl|tcio|tctto)$/i.test(f.newPath) ? 0 : 1e9) + hunkLines(f) }))
+        .sort((x, y) => x.rank - y.rank)[0].f;
+    const resolveSha = () => {
       if (!shaPromise) {
+        const firstFile = pickProbe();
         shaPromise = (async () => {
           const end = dbg().time("sha", "résolution de la version après", {
             indice_sha: opts.headShaHint ? "oui" : "non",
@@ -317,7 +326,7 @@
         ? loadEntry(pr, f, null)
         : limit(async () => {
             try {
-              const s = await resolveSha(f);
+              const s = await resolveSha();
               const e = s.file === f ? s.entry : await loadEntry(pr, f, s.rawBase);
               stats.fetched++;
               return e;
@@ -330,7 +339,14 @@
     };
 
     return {
-      files: files.map((f) => ({ path: f.newPath || f.oldPath, oldPath: f.oldPath, status: f.status, needsFetch: needsFetch(f) })),
+      // heavy : fichier probablement volumineux (.tsproj, .tmc, diff énorme), téléchargé seulement sur demande.
+      files: files.map((f) => ({
+        path: f.newPath || f.oldPath,
+        oldPath: f.oldPath,
+        status: f.status,
+        needsFetch: needsFetch(f),
+        heavy: needsFetch(f) && (/\.(tsproj|tspproj|tmc)$/i.test(f.newPath || "") || hunkLines(f) > 50000),
+      })),
       load,
       stats,
     };

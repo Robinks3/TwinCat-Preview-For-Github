@@ -336,4 +336,38 @@ async function testLazyLoader() {
   }
 }
 
-testLazyLoader().then(() => console.log(`\n${passed} test(s) réussi(s)${process.exitCode ? ", avec des échecs" : ""}`));
+// La version après est vérifiée sur le plus petit objet PLC, jamais sur un gros .tsproj.
+async function testProbeChoice() {
+  const name = "createPrLoader : vérification sur un petit objet PLC, .tsproj marqué lourd";
+  try {
+    const before = read("PlcTask.TcTTO");
+    const after = before.replace("10000", "1000");
+    const mod = gitDiff(before, after).replace(/([ab])\/[ab]\/f\.TcPOU/g, "$1/X");
+    const big = mod.replace(/\/X/g, "/Cfg/Big.tsproj");
+    const small = mod.replace(/\/X/g, "/PLC/Small.TcPOU");
+    const calls = [];
+    G.fetchImpl = async (url) => {
+      calls.push(url);
+      if (url.endsWith(".diff")) return big + small;
+      if (url.includes("/raw/")) return after;
+      throw new Error(`404 sur ${url}`);
+    };
+    const loader = await G.createPrLoader({ owner: "o", repo: "r", number: 1 }, M.isTwinCatPath, { headShaHint: "c".repeat(40) });
+    assert.deepStrictEqual(loader.files.map((f) => [f.path, f.heavy]), [["Cfg/Big.tsproj", true], ["PLC/Small.TcPOU", false]]);
+    await loader.load(0);
+    const raws = calls.filter((u) => u.includes("/raw/"));
+    assert.ok(raws[0].endsWith("/PLC/Small.TcPOU"), `témoin : ${raws[0]}`);
+    assert.ok(raws[1].endsWith("/Cfg/Big.tsproj"));
+    await loader.load(1);
+    assert.strictEqual(calls.filter((u) => u.includes("/raw/")).length, 2, "le témoin n'est pas retéléchargé");
+    passed++;
+    console.log(`ok   ${name}`);
+  } catch (e) {
+    console.log(`FAIL ${name}\n     ${e.stack.split("\n").slice(0, 3).join("\n     ")}`);
+    process.exitCode = 1;
+  } finally {
+    G.fetchImpl = null;
+  }
+}
+
+testLazyLoader().then(testProbeChoice).then(() => console.log(`\n${passed} test(s) réussi(s)${process.exitCode ? ", avec des échecs" : ""}`));
