@@ -10,6 +10,8 @@ A Chrome / Edge extension that makes **TwinCAT 3** pull requests readable on Git
 |---|---|
 | ![GitHub diff of a TwinCAT POU: raw XML, CDATA, GUIDs](docs/images/en/inline-before.png) | ![Same diff with the extension: ST code with section banners](docs/images/en/inline-after.png) |
 
+> **Using Azure DevOps instead of GitHub?** Have a look at [TcPreview](https://marketplace.visualstudio.com/items?itemName=dfreiberger.tc-preview-extension) by dfreiberger, a free extension that previews TwinCAT files (`.TcPOU`, `.TcDUT`, `.TcGVL`, `.TcIO`) in Azure Repos and pull requests ([source code](https://github.com/dfreiberger/tc-preview-extension)). It inspired this project.
+
 ---
 
 ## Installation
@@ -109,7 +111,7 @@ then open http://localhost:8787/test/harness/ (panel), `/test/harness/inline.htm
 
 ## Credits and license
 
-Inspired by TcCompare (Beckhoff) and [TcPreview](https://github.com/dfreiberger/tc-preview-extension) (TwinCAT preview for Azure DevOps). Test files in `test/fixtures` come from [TcBlack](https://github.com/Roald87/TcBlack) (MIT, see [test/fixtures/LICENSE-TcBlack](test/fixtures/LICENSE-TcBlack)). Screenshots were taken on public pull requests of [TcUnit](https://github.com/tcunit/TcUnit) and [BROTLib](https://github.com/BROTLib).
+Inspired by TcCompare (Beckhoff) and [TcPreview](https://github.com/dfreiberger/tc-preview-extension) (TwinCAT preview for Azure DevOps, [Marketplace](https://marketplace.visualstudio.com/items?itemName=dfreiberger.tc-preview-extension)). Test files in `test/fixtures` come from [TcBlack](https://github.com/Roald87/TcBlack) (MIT, see [test/fixtures/LICENSE-TcBlack](test/fixtures/LICENSE-TcBlack)). Screenshots were taken on public pull requests of [TcUnit](https://github.com/tcunit/TcUnit) and [BROTLib](https://github.com/BROTLib).
 
 License: [MIT](LICENSE).
 
