@@ -271,8 +271,30 @@
     const decl = node.parts.find((p) => p.part === "decl" && p.kind === "code");
     if (!decl) return "";
     const side = decl.status === "removed" ? "-" : "+";
-    const line = decl.ops.find((o) => (o.t === "=" || o.t === side) && o.text.trim());
-    return line ? line.text.trim() : "";
+    // Première ligne utile : on saute commentaires (* *), // et pragmas {attribute ...}.
+    let inBlock = false;
+    for (const o of decl.ops) {
+      if (o.t !== "=" && o.t !== side) continue;
+      let s = o.text.trim();
+      if (inBlock) {
+        const end = s.indexOf("*)");
+        if (end < 0) continue;
+        inBlock = false;
+        s = s.slice(end + 2).trim();
+      }
+      while (s.startsWith("(*")) {
+        const end = s.indexOf("*)");
+        if (end < 0) {
+          inBlock = true;
+          s = "";
+          break;
+        }
+        s = s.slice(end + 2).trim();
+      }
+      if (!s || s.startsWith("//") || s.startsWith("{")) continue;
+      return s;
+    }
+    return "";
   }
 
   function buildTree(sections) {
@@ -458,7 +480,11 @@
     else {
       if (a.noise.length) parts.push(h("div", { class: "tc-noise" }, T.t("file.noise", { list: a.noise.join(", ") })));
       if (a.status !== "noise" || ctx.opts.showUnchanged) {
-        for (const n of a.nodes) parts.push(renderNode(n, ctx, 0));
+        // Premier niveau : les nœuds inchangés sont masqués comme aux niveaux inférieurs.
+        const shown = a.nodes.filter((n) => n.status !== "unchanged" || ctx.opts.showUnchanged);
+        for (const n of shown) parts.push(renderNode(n, ctx, 0));
+        const hiddenTop = a.nodes.length - shown.length;
+        if (hiddenTop) parts.push(h("div", { class: "tc-muted tc-hidden-note" }, T.tn("node.hidden", hiddenTop)));
         if (!a.nodes.length) parts.push(h("div", { class: "tc-muted tc-pad" }, T.t("file.noSections")));
       }
     }
