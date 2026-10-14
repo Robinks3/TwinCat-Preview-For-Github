@@ -1,7 +1,10 @@
 // Parseur XML minimal, sans dépendance, utilisable dans Chrome et dans Node (tests).
 // Suffisant pour les fichiers TwinCAT : éléments, attributs, CDATA, commentaires, PI.
-// Nœud élément : { tag, attrs: {nom: valeur}, attrOrder: [noms], children: [éléments], text }
+// Nœud élément : { tag, attrs: {nom: valeur}, attrOrder: [noms], children: [éléments], text,
+//                  start, end, cdata: [{ start, end }] }
 // `text` concatène le texte direct (CDATA compris) de l'élément.
+// start/end : positions de l'élément dans la source (BOM retiré), cdata : positions du contenu
+// de chaque section CDATA ; utilisées pour situer chaque ligne du fichier (voir lines.js).
 
 (function (root) {
   const ENTITIES = { lt: "<", gt: ">", amp: "&", quot: '"', apos: "'" };
@@ -49,6 +52,7 @@
       if (src.startsWith("<![CDATA[", lt)) {
         const end = indexOrFail("]]>", lt + 9, "CDATA");
         top.text += src.slice(lt + 9, end);
+        (top.cdata || (top.cdata = [])).push({ start: lt + 9, end });
         i = end + 3;
       } else if (src.startsWith("<!--", lt)) {
         i = indexOrFail("-->", lt + 4, "commentaire") + 3;
@@ -60,13 +64,14 @@
         const end = indexOrFail(">", lt + 2, "balise fermante");
         const name = src.slice(lt + 2, end).trim();
         if (stack.length < 2 || top.tag !== name) fail(`</${name}> inattendu`);
+        top.end = end + 1;
         stack.pop();
         i = end + 1;
       } else {
         // Balise ouvrante : nom puis attributs (les valeurs peuvent contenir '>').
         let j = lt + 1;
         while (j < n && !isSpace(src[j]) && src[j] !== "/" && src[j] !== ">") j++;
-        const el = { tag: src.slice(lt + 1, j), attrs: {}, attrOrder: [], children: [], text: "" };
+        const el = { tag: src.slice(lt + 1, j), attrs: {}, attrOrder: [], children: [], text: "", start: lt, end: -1 };
         if (!el.tag) fail("nom de balise vide");
         let selfClosing = false;
         for (;;) {
@@ -97,7 +102,8 @@
           j = vend + 1;
         }
         top.children.push(el);
-        if (!selfClosing) stack.push(el);
+        if (selfClosing) el.end = j;
+        else stack.push(el);
         i = j;
       }
     }

@@ -11,6 +11,7 @@ const X = require("../src/xml.js");
 const M = require("../src/model.js");
 const D = require("../src/diff.js");
 const G = require("../src/github.js");
+const L = require("../src/lines.js");
 
 const FIX = path.join(__dirname, "fixtures");
 // Fixtures lues en LF sans BOM ; CRLF et BOM sont testés à part (aller-retour reverseApply).
