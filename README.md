@@ -1,4 +1,4 @@
-# TcReview for GitHub
+# TwinCAT Preview for GitHub
 
 **English** · [Français](README.fr.md)
 
@@ -59,7 +59,7 @@ then http://localhost:8787/test/harness/ (panel), `/test/harness/inline.html` (i
 
 Inspired by TcCompare (Beckhoff) and [TcPreview](https://github.com/dfreiberger/tc-preview-extension) (TwinCAT preview for Azure DevOps). The test files in `test/fixtures` come from [TcBlack](https://github.com/Roald87/TcBlack), under the MIT license (see [test/fixtures/LICENSE-TcBlack](test/fixtures/LICENSE-TcBlack)).
 
-Project license: not defined yet (all rights reserved).
+Project license: [MIT](LICENSE).
 
 ## Known limitations
 

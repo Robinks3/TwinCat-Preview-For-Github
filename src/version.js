@@ -1,4 +1,4 @@
-// TcReview for GitHub : vue structurée des fichiers TwinCAT dans les PR GitHub.
+// TwinCAT Preview for GitHub : vue structurée des fichiers TwinCAT dans les PR GitHub.
 //
 // Changelog (une version = une ligne) :
 //   0.1.0 - Version initiale : parseur XML, modèle TwinCAT (POU/DUT/GVL/Itf/TTO/plcproj/tsproj), diff par section, overlay GitHub.
@@ -29,9 +29,10 @@
 //   0.1.25 - ui.js renderCodeSplit : vue côte à côte avant | après des sections modifiées, lignes appariées, activée par défaut et mémorisée.
 //   0.1.26 - manifest.json/version.js/ui.js : extension renommée « TcReview for GitHub » (nom du dépôt public), documentation et page de confidentialité.
 //   0.1.27 - i18n.js + tous les modules + _locales : interface en français ou en anglais selon la langue du navigateur (nom, panneau, vue intégrée, debug, erreurs).
+//   0.1.28 - _locales/ui.js/debug.js/i18n.js + docs : extension renommée « TwinCAT Preview for GitHub », comme le dépôt public.
 
 (function (root) {
-  const SCRIPT_VERSION = "0.1.27";
+  const SCRIPT_VERSION = "0.1.28";
   const SCRIPT_DATE = "2026-10-14";
 
   const api = { SCRIPT_VERSION, SCRIPT_DATE };

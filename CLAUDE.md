@@ -1,4 +1,4 @@
-# TcReview for GitHub
+# TwinCAT Preview for GitHub
 
 Extension Chrome MV3 en JavaScript pur, sans étape de build : le dossier se charge tel quel dans Chrome.
 

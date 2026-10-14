@@ -762,7 +762,7 @@
         toggle(T.t("panel.showUnchanged"), "showUnchanged"),
         h("button", { class: "tc-close", onclick: onClose, title: T.t("panel.close") }, "✕")),
       h("div", { class: "tc-split" }, nav, main),
-      h("div", { class: "tc-foot tc-muted" }, `TcReview for GitHub v${T.SCRIPT_VERSION}`));
+      h("div", { class: "tc-foot tc-muted" }, `TwinCAT Preview for GitHub v${T.SCRIPT_VERSION}`));
     const overlay = h("div", { class: "tc-overlay", onclick: (e) => { if (e.target === overlay) onClose(); } }, panel);
 
     const api = {

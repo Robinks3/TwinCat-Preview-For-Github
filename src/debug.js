@@ -124,7 +124,7 @@
       }
     }
     const head = [
-      tr("report.title", { name: "TcReview for GitHub", v: root.TcPr && root.TcPr.SCRIPT_VERSION }),
+      tr("report.title", { name: "TwinCAT Preview for GitHub", v: root.TcPr && root.TcPr.SCRIPT_VERSION }),
       tr("report.page", { p: typeof location !== "undefined" ? location.pathname : "?" }),
       tr("report.browser", { b: typeof navigator !== "undefined" ? navigator.userAgent.replace(/^.*(Chrome\/[\d.]+).*$/, "$1") : "?" }),
       tr("report.events", { n: state.events.length }),

@@ -2,7 +2,7 @@
 
 **English** · [Français](PRIVACY.fr.md)
 
-TcReview for GitHub runs entirely in the browser. No data is sent anywhere other than GitHub, and nothing is sent to the extension's developer or to any third party.
+TwinCAT Preview for GitHub runs entirely in the browser. No data is sent anywhere other than GitHub, and nothing is sent to the extension's developer or to any third party.
 
 ## What the extension reads
 

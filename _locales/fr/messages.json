@@ -1,6 +1,6 @@
 {
   "extName": {
-    "message": "TcReview for GitHub"
+    "message": "TwinCAT Preview for GitHub"
   },
   "extDescription": {
     "message": "Pull requests TwinCAT 3 lisibles sur GitHub : code ST sans le XML, arborescence TwinCAT, configuration en propriétés, commentaires de revue conservés."

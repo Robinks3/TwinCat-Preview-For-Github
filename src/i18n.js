@@ -78,7 +78,7 @@
       "bar.debugTitle": "Mode debug : journal des temps de chargement",
 
       // Panneau de debug et rapport
-      "debug.title": "Debug TcReview",
+      "debug.title": "Debug TwinCAT Preview",
       "debug.copy": "Copier le rapport",
       "debug.copied": "Copié ✓",
       "debug.selectCopy": "Sélectionne et copie le texte",
@@ -250,7 +250,7 @@
       "bar.panelTitle": "Overview panel (Alt+T)",
       "bar.debugTitle": "Debug mode: loading time log",
 
-      "debug.title": "TcReview debug",
+      "debug.title": "TwinCAT Preview debug",
       "debug.copy": "Copy report",
       "debug.copied": "Copied ✓",
       "debug.selectCopy": "Select and copy the text",

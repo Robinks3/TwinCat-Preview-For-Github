@@ -2,7 +2,7 @@
 
 [English](PRIVACY.md) · **Français**
 
-TcReview for GitHub fonctionne entièrement dans le navigateur. Aucune donnée n'est envoyée ailleurs qu'à GitHub, et aucune n'est envoyée au développeur de l'extension ni à un tiers.
+TwinCAT Preview for GitHub fonctionne entièrement dans le navigateur. Aucune donnée n'est envoyée ailleurs qu'à GitHub, et aucune n'est envoyée au développeur de l'extension ni à un tiers.
 
 ## Ce que l'extension lit
 
