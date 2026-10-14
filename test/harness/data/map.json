@@ -1,0 +1,6 @@
+{
+ "https://github.com/demo/tcblack/pull/1.diff": "demo.diff",
+ "https://github.com/demo/tcblack/pull/1.patch": "demo.patch",
+ "https://github.com/demo/tcblack/raw/57cda932796e947a7b595e00a77ae182879f4278/PLC/POUs/FB_Child.TcPOU": "demo1.txt",
+ "https://github.com/demo/tcblack/raw/57cda932796e947a7b595e00a77ae182879f4278/PLC/PlcTask.TcTTO": "demo2.txt"
+}

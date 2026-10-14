@@ -1,0 +1,3 @@
+# Fixtures et données enregistrées : octets exacts (CRLF, BOM), sinon les tests de reconstruction mentent.
+test/fixtures/** -text
+test/harness/data/** -text

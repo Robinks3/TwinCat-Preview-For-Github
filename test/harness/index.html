@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TcPR Viewer · banc de test</title>
+  <link rel="stylesheet" href="../../styles.css">
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 24px; background: #fff; color: #1f2328; }
+    button { margin: 4px; padding: 6px 12px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>TcPR Viewer · banc de test</h1>
+  <p>Rejoue des réponses GitHub enregistrées (test/harness/data), sans extension ni réseau.</p>
+  <div id="prs"></div>
+
+  <script src="../../src/version.js"></script>
+  <script src="../../src/xml.js"></script>
+  <script src="../../src/model.js"></script>
+  <script src="../../src/diff.js"></script>
+  <script src="../../src/github.js"></script>
+  <script src="../../src/ui.js"></script>
+  <script>
+    const T = window.TcPr;
+    const PRS = [
+      { owner: "demo", repo: "tcblack", number: 1 },
+    ];
+    let map = null;
+    T.setFetchImpl(async (url, keepBom) => {
+      map = map || (await (await fetch("data/map.json")).json());
+      if (!map[url]) throw new Error(`404 sur ${url}`);
+      const buf = await (await fetch(`data/${map[url]}`)).arrayBuffer();
+      return new TextDecoder("utf-8", { ignoreBOM: !!keepBom }).decode(buf);
+    });
+
+    let current = null;
+    async function openPr(pr) {
+      if (current) current.el.remove();
+      const ov = T.createOverlay(pr, () => { ov.el.remove(); current = null; });
+      current = ov;
+      document.body.append(ov.el);
+      try {
+        const res = await T.loadPrFiles(pr, T.isTwinCatPath, (e) => ov.addEntry(e));
+        ov.setStatus(`${res.files.length} fichier(s) TwinCAT · ${res.headSha ? res.headSha.slice(0, 7) : ""}`);
+      } catch (e) {
+        ov.showMessage(`Échec du chargement : ${e.message}`, true);
+      }
+    }
+    for (const pr of PRS) {
+      const b = document.createElement("button");
+      b.textContent = `${pr.owner}/${pr.repo} #${pr.number}`;
+      b.onclick = () => openPr(pr);
+      document.getElementById("prs").append(b);
+    }
+  </script>
+</body>
+</html>

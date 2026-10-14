@@ -1,0 +1,135 @@
+diff --git a/PLC/POUs/FB_Child.TcPOU b/PLC/POUs/FB_Child.TcPOU
+index 4f3080d..19b0eb4 100644
+--- a/PLC/POUs/FB_Child.TcPOU
++++ b/PLC/POUs/FB_Child.TcPOU
+@@ -1,15 +1,15 @@
+ ﻿<?xml version="1.0" encoding="utf-8"?>
+-<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
++<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.12">
+   <POU Name="FB_Child" Id="{16c60171-46ae-4c0f-982d-d26906c8a65a}" SpecialFunc="None">
+-    <Declaration><![CDATA[FUNCTION_BLOCK  FB_Child EXTENDS FB_Base  IMPLEMENTS I_Interface,I_Interface2
++    <Declaration><![CDATA[FUNCTION_BLOCK FB_Child EXTENDS FB_Base IMPLEMENTS I_Interface, I_Interface2
+ VAR
+-SomeText: STRING;
+-	Counter		: DINT:= 1 ;
+-	Result		: DINT :=2;
+-    
+-    
+-      Base:FB_Base;
+-END_VAR]]></Declaration>
++	SomeText : STRING;
++	Counter : DINT := 1;
++	Result : DINT := 2;
++	
++	Base : FB_Base;
++END_VAR
++]]></Declaration>
+     <Implementation>
+       <ST><![CDATA[SomeText:= 'Current counts';
+ 
+@@ -28,31 +28,32 @@ AddTwoInts(    Variable1 :=4,
+     Variable2:=4);]]></ST>
+     </Implementation>
+     <Method Name="AddTwoInts" Id="{6a4e1f8c-f7f9-4983-b9b4-e06e406d35d9}">
+-      <Declaration><![CDATA[METHOD AddTwoInts:DINT
++      <Declaration><![CDATA[METHOD AddTwoInts : DINT
+ VAR_INPUT
+-  Variable1 :DINT;
+-    Variable2:DINT ;
+-END_VAR]]></Declaration>
++	Variable1 : DINT;
++	Variable2 : DINT;
++END_VAR
++]]></Declaration>
+       <Implementation>
+         <ST><![CDATA[AddTwoInts:=Variable1+Variable2 ;]]></ST>
+       </Implementation>
+     </Method>
+     <Property Name="AnotherProperty" Id="{aa0cfd4f-5e29-4982-9f71-257c1439d0f2}">
+-      <Declaration><![CDATA[PROPERTY   PRIVATE  AnotherProperty: LREAL]]></Declaration>
++      <Declaration><![CDATA[PROPERTY PRIVATE AnotherProperty : LREAL
++]]></Declaration>
+       <Get Name="Get" Id="{d44792da-1b4d-4983-85ab-83fe99d160dd}">
+         <Declaration><![CDATA[VAR
+- percent:LREAL:=100;
+-END_VAR]]></Declaration>
++	percent : LREAL := 100;
++END_VAR
++]]></Declaration>
+         <Implementation>
+           <ST><![CDATA[]]></ST>
+         </Implementation>
+       </Get>
+       <Set Name="Set" Id="{39df90cf-cdb1-4cd9-b65e-5832b944cb70}">
+         <Declaration><![CDATA[VAR
+-            sName:STRING(20) := 'This is the one!';
++	sName : STRING(20) := 'This is the one!';
+ END_VAR
+-
+-
+ ]]></Declaration>
+         <Implementation>
+           <ST><![CDATA[]]></ST>
+@@ -60,18 +61,20 @@ END_VAR
+       </Set>
+     </Property>
+     <Property Name="Counter" Id="{d49735b6-a4d9-4d67-adc2-f3998b3471ec}">
+-      <Declaration><![CDATA[PROPERTY   Counted  :   DINT]]></Declaration>
++      <Declaration><![CDATA[PROPERTY Counted : DINT
++]]></Declaration>
+       <Get Name="Get" Id="{7c33609a-907f-4f05-8aea-95e3f6a224e3}">
+         <Declaration><![CDATA[VAR
+-   AddOne:DINT:=1 ;
+-END_VAR]]></Declaration>
++	AddOne : DINT := 1;
++END_VAR
++]]></Declaration>
+         <Implementation>
+           <ST><![CDATA[]]></ST>
+         </Implementation>
+       </Get>
+       <Set Name="Set" Id="{4bb13cca-2444-4335-a94c-c714ed95062a}">
+         <Declaration><![CDATA[VAR
+- SubTractTwo :DINT:=2;
++	SubTractTwo : DINT := 2;
+ END_VAR
+ ]]></Declaration>
+         <Implementation>
+@@ -82,12 +85,22 @@ END_VAR
+     <Method Name="SecondMethod" Id="{f5bbaa77-a784-4d59-b884-5b52362ac1cd}">
+       <Declaration><![CDATA[METHOD SecondMethod : BOOL
+ VAR_INPUT
+-    bBool:BOOL;
++	bBool : BOOL;
+ END_VAR
+ ]]></Declaration>
+       <Implementation>
+         <ST><![CDATA[]]></ST>
+       </Implementation>
+     </Method>
++    <Method Name="Reset" Id="{11111111-1111-1111-1111-111111111111}">
++      <Declaration><![CDATA[METHOD Reset : BOOL]]></Declaration>
++      <Implementation>
++        <ST><![CDATA[Counter := 0;
++Reset := TRUE;]]></ST>
++      </Implementation>
++    </Method>
++    <LineIds Name="FB_Child">
++      <LineId Id="3" Count="0" />
++    </LineIds>
+   </POU>
+ </TcPlcObject>
+\ No newline at end of file
+diff --git a/PLC/PlcTask.TcTTO b/PLC/PlcTask.TcTTO
+index e67b5e4..ff0a587 100644
+--- a/PLC/PlcTask.TcTTO
++++ b/PLC/PlcTask.TcTTO
+@@ -2,7 +2,7 @@
+ <TcPlcObject Version="1.1.0.1">
+   <Task Name="PlcTask" Id="{099e8449-feab-4b4c-92a7-171dd5269fef}">
+     <!--CycleTime in micro seconds.-->
+-    <CycleTime>10000</CycleTime>
++    <CycleTime>1000</CycleTime>
+     <Priority>20</Priority>
+     <PouCall>
+       <Name>MAIN</Name>

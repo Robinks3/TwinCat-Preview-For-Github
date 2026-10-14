@@ -1,0 +1,102 @@
+/* Couleurs reprises des variables CSS de GitHub, pour suivre automatiquement le thème clair ou sombre. */
+.tc-fab, .tc-overlay {
+  --tc-fg: var(--fgColor-default, #1f2328);
+  --tc-muted: var(--fgColor-muted, #59636e);
+  --tc-bg: var(--bgColor-default, #ffffff);
+  --tc-bg2: var(--bgColor-muted, #f6f8fa);
+  --tc-border: var(--borderColor-default, #d1d9e0);
+  --tc-add-bg: var(--diffBlob-additionLine-bgColor, #dafbe1);
+  --tc-del-bg: var(--diffBlob-deletionLine-bgColor, #ffebe9);
+  --tc-mod-bg: var(--bgColor-attention-muted, #fff8c5);
+  --tc-accent: var(--fgColor-accent, #0969da);
+  --tc-danger: var(--fgColor-danger, #d1242f);
+  --tc-success: var(--fgColor-success, #1a7f37);
+  --tc-attention: var(--fgColor-attention, #9a6700);
+  --tc-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+}
+
+.tc-fab {
+  position: fixed; right: 20px; bottom: 20px; z-index: 2147483000;
+  padding: 8px 14px; border-radius: 999px; border: 1px solid var(--tc-border);
+  background: var(--tc-bg); color: var(--tc-fg); font-weight: 600; font-size: 13px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); cursor: pointer;
+}
+.tc-fab:hover { border-color: var(--tc-accent); color: var(--tc-accent); }
+
+.tc-overlay {
+  position: fixed; inset: 0; z-index: 2147483001; background: rgba(0, 0, 0, 0.45);
+  display: flex; justify-content: center; align-items: stretch; padding: 24px;
+}
+.tc-panel {
+  background: var(--tc-bg); color: var(--tc-fg); border: 1px solid var(--tc-border); border-radius: 12px;
+  width: min(1400px, 100%); display: flex; flex-direction: column; overflow: hidden;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3); font-size: 14px;
+}
+.tc-top {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 12px 16px; border-bottom: 1px solid var(--tc-border); background: var(--tc-bg2);
+}
+.tc-spacer { flex: 1; }
+.tc-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; }
+.tc-close {
+  border: 1px solid var(--tc-border); background: var(--tc-bg); color: var(--tc-fg);
+  border-radius: 6px; width: 30px; height: 30px; cursor: pointer; font-size: 14px;
+}
+.tc-body { flex: 1; overflow: auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+.tc-foot { padding: 6px 16px; border-top: 1px solid var(--tc-border); font-size: 12px; }
+
+.tc-muted { color: var(--tc-muted); }
+.tc-pad { padding: 8px 12px; }
+.tc-error { color: var(--tc-danger); padding: 8px 12px; }
+
+.tc-file { border: 1px solid var(--tc-border); border-radius: 8px; overflow: hidden; flex-shrink: 0; }
+.tc-file-head {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 8px 12px; background: var(--tc-bg2); border-bottom: 1px solid var(--tc-border);
+}
+.tc-path { font-family: var(--tc-mono); font-size: 13px; font-weight: 600; word-break: break-all; }
+.tc-noise { padding: 6px 12px; font-size: 12px; color: var(--tc-muted); border-bottom: 1px solid var(--tc-border); }
+
+.tc-badge { font-size: 12px; padding: 1px 8px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; }
+.tc-badge-added { color: var(--tc-success); }
+.tc-badge-removed { color: var(--tc-danger); }
+.tc-badge-modified, .tc-badge-renamed { color: var(--tc-attention); }
+.tc-badge-unchanged, .tc-badge-noise { color: var(--tc-muted); }
+
+.tc-section + .tc-section { border-top: 1px solid var(--tc-border); }
+.tc-section-head { display: flex; align-items: center; gap: 10px; padding: 8px 12px 4px; }
+.tc-section-title { font-weight: 600; }
+
+.tc-code { width: 100%; border-collapse: collapse; font-family: var(--tc-mono); font-size: 12px; line-height: 20px; }
+.tc-code td { padding: 0 8px; vertical-align: top; }
+.tc-code .tc-ln { width: 1%; min-width: 36px; text-align: right; color: var(--tc-muted); user-select: none; }
+.tc-code .tc-sign { width: 1%; color: var(--tc-muted); user-select: none; }
+.tc-code .tc-text { white-space: pre-wrap; word-break: break-word; }
+.tc-code tr.tc-add { background: var(--tc-add-bg); }
+.tc-code tr.tc-del { background: var(--tc-del-bg); }
+.tc-code tr.tc-skip td {
+  color: var(--tc-accent); background: var(--tc-bg2); cursor: pointer; padding: 2px 12px; font-family: inherit;
+}
+
+.tc-props { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 4px; }
+.tc-props th, .tc-props td { text-align: left; padding: 4px 12px; border-top: 1px solid var(--tc-border); vertical-align: top; }
+.tc-props th { color: var(--tc-muted); font-weight: 600; font-size: 12px; }
+.tc-props td { font-family: var(--tc-mono); font-size: 12px; word-break: break-all; }
+.tc-props .tc-key { width: 40%; }
+.tc-props tr.tc-add { background: var(--tc-add-bg); }
+.tc-props tr.tc-del { background: var(--tc-del-bg); }
+.tc-props tr.tc-mod { background: var(--tc-mod-bg); }
+.tc-none { color: var(--tc-muted); }
+
+.tc-kw { color: var(--color-prettylights-syntax-keyword, #cf222e); font-weight: 600; }
+.tc-type { color: var(--color-prettylights-syntax-entity, #8250df); }
+.tc-str { color: var(--color-prettylights-syntax-string, #0a3069); }
+.tc-num { color: var(--color-prettylights-syntax-constant, #0550ae); }
+.tc-com { color: var(--color-prettylights-syntax-comment, #59636e); font-style: italic; }
+.tc-pragma { color: var(--color-prettylights-syntax-variable, #953800); }
+
+@media (max-width: 700px) {
+  .tc-overlay { padding: 0; }
+  .tc-panel { border-radius: 0; }
+}
