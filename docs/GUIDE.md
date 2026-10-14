@@ -19,6 +19,8 @@ Update: replace the files, click ⟳ on the extension card in `chrome://extensio
 
 On a pull request page, a toolbar appears at the bottom right:
 
+![Toolbar](images/en/toolbar.png)
+
 | Button | Purpose |
 |---|---|
 | **TwinCAT: inline** | Formats TwinCAT files directly in GitHub's diff. Setting remembered. The extension icon does the same. |
@@ -28,6 +30,10 @@ On a pull request page, a toolbar appears at the bottom right:
 ## Inline formatting
 
 Use it in the PR's **Files changed** tab, to review and comment.
+
+| Without the extension | With the extension |
+|---|---|
+| ![Raw XML diff](images/en/inline-before.png) | ![Formatted diff](images/en/inline-after.png) |
 
 - XML structure lines and noise (`LineIds`, GUIDs, XAE version) are hidden.
 - ST code is shown without `<![CDATA[`, highlighted.
@@ -43,6 +49,12 @@ Formatting is first approximate (based on the displayed text), then exact as soo
 ## Overview panel
 
 Use it to understand a PR at a glance.
+
+![Side-by-side panel](images/en/panel-side-by-side.jpg)
+
+![TwinCAT tree](images/en/panel-tree.jpg)
+
+![Configuration as properties](images/en/panel-config.png)
 
 - **TwinCAT tree**: one block per object (POU > methods / properties > Get / Set), with a badge per type (FB, PRG, M, P, G, S...) and the signature (`METHOD Reset : BOOL`). Declaration and code kept apart. Every block can be collapsed.
 - **Navigation on the left**: folders > files > members, colored dot by state (green added, red removed, orange modified). The **☰ Tree** button hides it to give the code the full width.
@@ -60,6 +72,8 @@ Use it to understand a PR at a glance.
 ## Debug mode
 
 The **🐞** button opens a live log: requests (duration, size), source of the head version (page SHA, branch or `.patch`), analysis and rendering of each file, formatting passes, long tasks (page blocked for more than 200 ms).
+
+![Debug panel](images/en/debug.png)
 
 - **Copy report**: summary per step (count, total, maximum) followed by the full log, ready to paste into a ticket.
 - **Previous report**: saved log of the previous session, useful when the page froze and had to be closed.

@@ -34,9 +34,10 @@
 //   0.1.30 - styles.css : sur une ligne à bandeau, numéros de ligne et marqueur +/- alignés sur le code plutôt que sur le bandeau.
 //   0.1.31 - ui.js fillFileBody : nœuds inchangés masqués aussi au premier niveau d'un fichier (groupes vides du .plcproj affichés).
 //   0.1.32 - ui.js signatureOf : signature prise après les commentaires et pragmas (« (* » affiché pour un FB commenté).
+//   0.1.33 - ui.js/content.js/styles.css : observateurs débranchés à la fermeture du panneau (démontages fantômes), marge de la mention « propriétés masquées ».
 
 (function (root) {
-  const SCRIPT_VERSION = "0.1.32";
+  const SCRIPT_VERSION = "0.1.33";
   const SCRIPT_DATE = "2026-10-14";
 
   const api = { SCRIPT_VERSION, SCRIPT_DATE };

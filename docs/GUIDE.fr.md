@@ -19,6 +19,8 @@ Mise à jour : remplacer les fichiers, cliquer sur ⟳ dans la carte de l'extens
 
 Sur une page de pull request, une barre apparaît en bas à droite :
 
+![Barre d'outils](images/fr/toolbar.png)
+
 | Bouton | Rôle |
 |---|---|
 | **TwinCAT : intégré** | Met en forme les fichiers TwinCAT directement dans le diff de GitHub. Réglage mémorisé. L'icône de l'extension fait la même chose. |
@@ -28,6 +30,10 @@ Sur une page de pull request, une barre apparaît en bas à droite :
 ## Mise en forme intégrée
 
 À utiliser dans l'onglet **Files changed** de la PR, pour relire et commenter.
+
+| Sans l'extension | Avec l'extension |
+|---|---|
+| ![Diff XML brut](images/en/inline-before.png) | ![Diff mis en forme](images/fr/inline-after.png) |
 
 - Les lignes de structure XML et le bruit (`LineIds`, GUID, version XAE) sont masqués.
 - Le code ST s'affiche sans `<![CDATA[` et coloré.
@@ -43,6 +49,12 @@ La mise en forme est d'abord approximative (d'après le texte affiché), puis ex
 ## Panneau d'ensemble
 
 À utiliser pour comprendre une PR d'un coup d'œil.
+
+![Panneau côte à côte](images/fr/panel-side-by-side.jpg)
+
+![Arborescence TwinCAT](images/fr/panel-tree.jpg)
+
+![Configuration en propriétés](images/fr/panel-config.png)
 
 - **Arborescence TwinCAT** : un bloc par objet (POU > méthodes / propriétés > Get / Set), avec une pastille par type (FB, PRG, M, P, G, S...) et la signature (`METHOD Reset : BOOL`). Déclaration et code séparés. Chaque bloc se replie.
 - **Navigation à gauche** : dossiers > fichiers > membres, pastille de couleur selon l'état (vert ajouté, rouge supprimé, orange modifié). Bouton **☰ Arbre** pour la masquer et donner toute la largeur au code.
@@ -60,6 +72,8 @@ La mise en forme est d'abord approximative (d'après le texte affiché), puis ex
 ## Mode debug
 
 Le bouton **🐞** ouvre un journal en direct : requêtes (durée, taille), source de la version après (SHA de la page, branche ou `.patch`), analyse et rendu de chaque fichier, passes de mise en forme, tâches longues (page bloquée plus de 200 ms).
+
+![Panneau de debug](images/fr/debug.png)
 
 - **Copier le rapport** : synthèse par étape (nombre, total, maximum) puis journal complet, à coller dans un ticket.
 - **Rapport précédent** : journal sauvegardé de la session précédente, utile si la page s'est figée et a dû être quittée.

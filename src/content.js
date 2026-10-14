@@ -67,6 +67,7 @@
 
   function closePanel() {
     if (overlay) {
+      overlay.destroy();
       overlay.el.remove();
       progressListeners.delete(overlay.onProgress);
     }

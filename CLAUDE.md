@@ -1,19 +1,20 @@
 # TwinCAT Preview for GitHub
 
-Extension Chrome MV3 en JavaScript pur, sans étape de build : le dossier se charge tel quel dans Chrome.
+Chrome MV3 extension in plain JavaScript, no build step: the folder loads as is in Chrome.
 
-- Tests : `node test/run.js` (cœur) et `node test/harness/serve.mjs` puis http://localhost:8787/test/harness/ (rendu).
-- Les modules `src/*.js` s'exportent via `module.exports` (Node) ou `globalThis.TcPr` (navigateur). Garder ce double export.
-- Tout contenu venant d'une PR s'insère avec `textContent`, jamais `innerHTML`.
-- Tout texte visible passe par `src/i18n.js` (`T.t`, `T.tn`) avec une entrée française ET anglaise ; le test i18n de `test/run.js` vérifie que les deux dictionnaires ont les mêmes clés. Documentation : anglais en `*.md`, français en `*.fr.md`, à tenir à jour ensemble.
-- Tests de l'extension sur des PR publiques uniquement, jamais sur une PR privée.
+- Tests: `node test/run.js` (core) and `node test/harness/serve.mjs`, then http://localhost:8787/test/harness/ (rendering).
+- `src/*.js` modules export through `module.exports` (Node) or `globalThis.TcPr` (browser). Keep this dual export.
+- Any content coming from a PR is inserted with `textContent`, never `innerHTML`.
+- Every visible text goes through `src/i18n.js` (`T.t`, `T.tn`) with both a French AND an English entry; the i18n test in `test/run.js` checks that both dictionaries have the same keys. Documentation: English in `*.md`, French in `*.fr.md`, kept in sync, screenshots in `docs/images/en` and `docs/images/fr`.
+- Test the extension on public PRs only, never on a private PR.
+- Commit messages in English.
 
-## Versioning : « une version = une ligne »
+## Versioning: "one version = one line"
 
-La version est `SCRIPT_VERSION` dans `src/version.js`, et `version` dans `manifest.json` doit rester identique.
+The version is `SCRIPT_VERSION` in `src/version.js`; `version` in `manifest.json` must stay identical.
 
-1. À chaque modification, incrémenter `SCRIPT_VERSION` (ex. 0.1.0 → 0.1.1) et `manifest.json`.
-2. Ajouter UNE ligne au changelog en tête de `src/version.js`, au format `//   X.Y.Z - description` (fonction touchée, effet, motivation).
-3. Mettre à jour `SCRIPT_DATE` si la date a changé.
+1. On every change, bump `SCRIPT_VERSION` (e.g. 0.1.0 → 0.1.1) and `manifest.json`.
+2. Add ONE line to the changelog at the top of `src/version.js`, formatted `//   X.Y.Z - description` (function touched, effect, reason).
+3. Update `SCRIPT_DATE` if the date changed.
 
-Aucune exception, même pour une ligne. Plusieurs modifications indépendantes = une version et une ligne chacune. La version la plus haute du changelog est toujours égale à `SCRIPT_VERSION`, en ordre séquentiel strict.
+No exception, even for a one-line fix. Several independent changes = one version and one line each. The highest changelog version always equals `SCRIPT_VERSION`, in strict sequential order.

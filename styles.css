@@ -233,3 +233,4 @@ td[data-tcr-part="impl"] > .tcr-banner { background: var(--bgColor-success-muted
 .tc-code-split td.tc-ln + td.tc-text + td.tc-ln { border-left: 1px solid var(--tc-border); }
 .tc-nav-toggle { border: 1px solid var(--tc-border); }
 .tc-nav[hidden] { display: none; }
+.tc-part > .tc-muted { padding: 4px 10px; font-size: 12px; }

@@ -796,6 +796,11 @@
 
     const api = {
       el: overlay,
+      // Fermeture : observateurs débranchés (sinon ils signalent des démontages fantômes à px=0).
+      destroy() {
+        observer.disconnect();
+        fillQueue.length = 0;
+      },
       setStatus(t) {
         statusText = t;
         status.textContent = t;
