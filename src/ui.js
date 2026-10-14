@@ -318,6 +318,10 @@
 
   function fillFileBody(entry, ctx) {
     if (entry.ui.filled) return;
+    if (entry.pending) {
+      entry.ui.body.replaceChildren(h("div", { class: "tc-muted tc-pad" }, "Téléchargement…"));
+      return;
+    }
     entry.ui.filled = true;
     const a = analyze(entry, ctx.opts);
     const parts = [];
@@ -429,7 +433,24 @@
       }, 50);
     };
 
+    // Fonction de chargement à la demande fournie par setList (fichiers modifiés).
+    let loadFn = null;
+    let onLoaded = null;
+
     const fill = (entry) => {
+      if (entry.pending) {
+        // Contenu pas encore téléchargé : on le demande maintenant, une seule fois.
+        if (loadFn && !entry.requested) {
+          entry.requested = true;
+          const i = entry.index;
+          loadFn(i).then((e) => {
+            api.updateEntry(i, e);
+            if (onLoaded) onLoaded();
+          });
+        }
+        fillFileBody(entry, ctx);
+        return;
+      }
       // Contexte propre au fichier : déplier des lignes ne redessine que ce fichier.
       const fctx = Object.assign({}, ctx, {
         onExpand: (key) => {
@@ -463,6 +484,18 @@
       else observer.observe(card);
     };
 
+    // Remplace la carte d'un fichier arrivé après coup, à sa place.
+    const replaceShell = (entry, i) => {
+      const old = document.getElementById(entry.domId);
+      const card = renderFileShell(entry, i);
+      if (old) {
+        observer.unobserve(old);
+        old.replaceWith(card);
+      } else main.append(card);
+      if (i < EAGER) fill(entry);
+      else observer.observe(card);
+    };
+
     const rerender = () => {
       const scroll = main.scrollTop;
       observer.disconnect();
@@ -490,26 +523,33 @@
       h("div", { class: "tc-foot tc-muted" }, `TcPR Viewer v${T.SCRIPT_VERSION}`));
     const overlay = h("div", { class: "tc-overlay", onclick: (e) => { if (e.target === overlay) onClose(); } }, panel);
 
-    return {
+    const api = {
       el: overlay,
       setStatus(t) {
         statusText = t;
         status.textContent = t;
       },
-      addEntry(e) {
-        entries.push(e);
-        if (!message) appendShell(e, entries.length - 1);
-        scheduleNav();
-      },
-      setEntries(list) {
-        entries = list.slice();
+      // Liste connue d'avance (en-têtes affichés tout de suite). Chaque contenu est demandé à load(i)
+      // quand sa carte approche de l'écran ; onLoadedCb est appelé après chaque arrivée.
+      setList(list, load, onLoadedCb) {
+        loadFn = load || null;
+        onLoaded = onLoadedCb || null;
+        entries = list.map((m, i) => Object.assign({ base: null, head: null, error: null, pending: true, index: i }, m));
         rerender();
+      },
+      updateEntry(i, e) {
+        if (!entries[i]) return;
+        Object.assign(entries[i], e, { pending: false, index: i });
+        analysisCache.delete(entries[i]);
+        if (!message) replaceShell(entries[i], i);
+        scheduleNav();
       },
       showMessage(text, isError) {
         message = h("div", { class: isError ? "tc-error" : "tc-muted tc-pad" }, text);
         rerender();
       },
     };
+    return api;
   }
 
   const api = { createOverlay, h, highlightSt };

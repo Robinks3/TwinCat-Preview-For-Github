@@ -41,8 +41,10 @@
       current = ov;
       document.body.append(ov.el);
       try {
-        const res = await T.loadPrFiles(pr, T.isTwinCatPath, (e) => ov.addEntry(e));
-        ov.setStatus(`${res.files.length} fichier(s) TwinCAT · ${res.headSha ? res.headSha.slice(0, 7) : ""}`);
+        const loader = await T.createPrLoader(pr, T.isTwinCatPath, { onProgress: (t) => ov.setStatus(t) });
+        const refresh = () => ov.setStatus(`${loader.files.length} fichier(s) TwinCAT · ${loader.stats.fetched}/${loader.stats.toFetch} téléchargé(s)`);
+        ov.setList(loader.files, loader.load, refresh);
+        refresh();
       } catch (e) {
         ov.showMessage(`Échec du chargement : ${e.message}`, true);
       }

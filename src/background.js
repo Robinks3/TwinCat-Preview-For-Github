@@ -18,12 +18,22 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     sendResponse({ ok: false, status: 0, error: "URL refusée" });
     return false;
   }
-  fetch(msg.url, { credentials: "include" })
+  // Délai maximal : une requête bloquée ne doit pas figer le panneau indéfiniment.
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 60000);
+  fetch(msg.url, { credentials: "include", signal: ctrl.signal })
+    .finally(() => clearTimeout(timer))
     .then(async (r) => {
       const buf = await r.arrayBuffer();
       const text = new TextDecoder("utf-8", { ignoreBOM: !!msg.keepBom }).decode(buf);
       sendResponse({ ok: r.ok, status: r.status, text });
     })
-    .catch((e) => sendResponse({ ok: false, status: 0, error: String(e && e.message ? e.message : e) }));
+    .catch((e) =>
+      sendResponse({
+        ok: false,
+        status: 0,
+        error: e && e.name === "AbortError" ? "délai de 60 s dépassé" : String(e && e.message ? e.message : e),
+      })
+    );
   return true; // réponse asynchrone
 });

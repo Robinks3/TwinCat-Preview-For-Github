@@ -291,4 +291,49 @@ test("lignes : ST sans enveloppe, échafaudage, bruit LineIds et GUID", () => {
   );
 });
 
-console.log(`\n${passed} test(s) réussi(s)${process.exitCode ? ", avec des échecs" : ""}`);
+// Test asynchrone : le chargeur ne télécharge que ce qu'on lui demande, une seule fois.
+async function testLazyLoader() {
+  const name = "createPrLoader : chargement à la demande, sans double téléchargement";
+  try {
+    const before = read("PlcTask.TcTTO");
+    const after = before.replace("10000", "1000");
+    const mod = gitDiff(before, after).replace(/([ab])\/[ab]\/f\.TcPOU/g, "$1/PLC/Task.TcTTO");
+    const diff = [
+      mod.replace(/PLC\/Task\.TcTTO/g, "PLC/T1.TcTTO"),
+      mod.replace(/PLC\/Task\.TcTTO/g, "PLC/T2.TcTTO"),
+      "diff --git a/PLC/New.TcDUT b/PLC/New.TcDUT\nnew file mode 100644\n--- /dev/null\n+++ b/PLC/New.TcDUT\n@@ -0,0 +1 @@\n+<a/>\n",
+    ].join("");
+    const sha = "a".repeat(40);
+    const calls = [];
+    G.fetchImpl = async (url) => {
+      calls.push(url);
+      if (url.endsWith(".diff")) return diff;
+      if (url.endsWith(".patch")) return `From ${sha} Mon Sep 17 00:00:00 2001\n`;
+      if (url.includes(`/raw/${sha}/`)) return after;
+      throw new Error(`404 sur ${url}`);
+    };
+    const pr = { owner: "o", repo: "r", number: 1 };
+    const loader = await G.createPrLoader(pr, M.isTwinCatPath, { headShaHint: sha });
+    assert.deepStrictEqual(loader.files.map((f) => [f.path, f.needsFetch]), [["PLC/T1.TcTTO", true], ["PLC/T2.TcTTO", true], ["PLC/New.TcDUT", false]]);
+    assert.strictEqual(calls.length, 1, "seul le .diff au départ");
+    const added = await loader.load(2);
+    assert.strictEqual(added.head, "<a/>\n");
+    assert.strictEqual(calls.length, 1, "fichier ajouté : rien à télécharger");
+    const e1 = await loader.load(0);
+    assert.strictEqual(e1.base, before);
+    assert.strictEqual(calls.length, 2, "un seul raw, SHA de la page vérifié dessus, pas de .patch");
+    await loader.load(0);
+    assert.strictEqual(calls.length, 2, "pas de second téléchargement");
+    assert.strictEqual(loader.stats.shaSource, "page");
+    assert.strictEqual(loader.stats.fetched, 1);
+    passed++;
+    console.log(`ok   ${name}`);
+  } catch (e) {
+    console.log(`FAIL ${name}\n     ${e.stack.split("\n").slice(0, 3).join("\n     ")}`);
+    process.exitCode = 1;
+  } finally {
+    G.fetchImpl = null;
+  }
+}
+
+testLazyLoader().then(() => console.log(`\n${passed} test(s) réussi(s)${process.exitCode ? ", avec des échecs" : ""}`));

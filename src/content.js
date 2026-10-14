@@ -3,7 +3,7 @@
 
 (function (root) {
   const T = root.TcPr;
-  const cache = new Map(); // "owner/repo#N" -> entrées déjà chargées
+  const loaders = new Map(); // "owner/repo#N" -> Promise du chargeur de la PR
   let button = null;
   let overlay = null;
 
@@ -24,43 +24,42 @@
     const pr = T.parsePrUrl(location.href);
     if (!pr) return;
     close();
-    overlay = T.createOverlay(pr, close);
-    document.body.append(overlay.el);
+    const current = (overlay = T.createOverlay(pr, close));
+    document.body.append(current.el);
     document.addEventListener("keydown", onKey, true);
 
+    // Un chargeur par PR, gardé pour la page : rouvrir le panneau ne retélécharge rien.
     const id = `${pr.owner}/${pr.repo}#${pr.number}`;
-    if (cache.has(id) && !forceReload) {
-      const c = cache.get(id);
-      overlay.setEntries(c.files);
-      overlay.setStatus(statusLine(c));
-      return;
-    }
-    const current = overlay;
-    try {
-      const res = await T.loadPrFiles(
-        pr,
-        T.isTwinCatPath,
-        (entry) => {
-          if (overlay === current) current.addEntry(entry);
+    if (forceReload || !loaders.has(id)) {
+      const p = T.createPrLoader(pr, T.isTwinCatPath, {
+        headShaHint: headShaFromPage(),
+        onProgress: (t) => {
+          if (overlay === current) current.setStatus(t);
         },
-        {
-          headShaHint: headShaFromPage(),
-          onProgress: (t) => {
-            if (overlay === current) current.setStatus(t);
-          },
-        }
-      );
-      cache.set(id, res);
+      });
+      p.catch(() => loaders.delete(id)); // un échec ne doit pas rester en cache
+      loaders.set(id, p);
+    }
+    try {
+      const loader = await loaders.get(id);
       if (overlay !== current) return;
-      if (!res.files.length) current.showMessage("Aucun fichier TwinCAT dans cette PR.");
-      current.setStatus(statusLine(res));
+      if (!loader.files.length) {
+        current.showMessage("Aucun fichier TwinCAT dans cette PR.");
+        current.setStatus("");
+        return;
+      }
+      const refresh = () => {
+        if (overlay === current) current.setStatus(statusLine(loader));
+      };
+      current.setList(loader.files, loader.load, refresh);
+      refresh();
     } catch (e) {
       if (overlay === current) current.showMessage(`Échec du chargement : ${e.message}`, true);
     }
   }
 
   // SHA de tête présent dans les données embarquées de la page de PR (« headOid »).
-  // Ignoré s'il est ambigu ; loadPrFiles le vérifie de toute façon avant de s'en servir.
+  // Ignoré s'il est ambigu ; le chargeur le vérifie de toute façon avant de s'en servir.
   function headShaFromPage() {
     const shas = new Set();
     for (const s of document.querySelectorAll('script[type="application/json"]')) {
@@ -69,10 +68,13 @@
     return shas.size === 1 ? [...shas][0] : null;
   }
 
-  function statusLine(res) {
-    const n = res.files.length;
-    const sha = res.headSha ? ` · ${res.headSha.slice(0, 7)}` : "";
-    return `${n} fichier${n > 1 ? "s" : ""} TwinCAT${sha}`;
+  // Ligne d'état : nombre de fichiers, téléchargements faits / nécessaires, source du SHA, temps du diff.
+  function statusLine(loader) {
+    const s = loader.stats;
+    const n = loader.files.length;
+    const sec = (ms) => `${(ms / 1000).toFixed(1).replace(".", ",")} s`;
+    const sha = s.headSha ? ` · SHA ${s.headSha.slice(0, 7)} (${s.shaSource})` : "";
+    return `${n} fichier${n > 1 ? "s" : ""} TwinCAT · ${s.fetched}/${s.toFetch} modifié${s.toFetch > 1 ? "s" : ""} téléchargé${s.fetched > 1 ? "s" : ""} · diff ${sec(s.diffMs)} (${s.diffKb} Ko)${sha}`;
   }
 
   function sync() {

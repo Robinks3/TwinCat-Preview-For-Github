@@ -11,9 +11,12 @@
 //   0.1.7 - diff.js diffLines : diff de Myers au lieu d'une table LCS N×M (centaines de Mo sur un gros POU, plantage sur les grosses PR).
 //   0.1.8 - model.js/ui.js : affichage en arborescence TwinCAT (POU > méthodes/propriétés > Get/Set), déclaration et code distincts, navigation à gauche.
 //   0.1.9 - ui.js createOverlay : rendu progressif des fichiers (en-tête immédiat, contenu à l'approche de l'écran), plus de redessin complet par fichier reçu.
+//   0.1.10 - github.js loadEntry : fichiers ajoutés reconstruits depuis le diff, sans téléchargement (déjà entiers dans le .diff).
+//   0.1.11 - github.js/background.js/ui.js : liste des fichiers affichée dès le .diff, gros fichier lent non bloquant, délai de 60 s par requête.
+//   0.1.12 - github.js createPrLoader/content.js : téléchargement à la demande (carte proche de l'écran), une seule fois par fichier et par page.
 
 (function (root) {
-  const SCRIPT_VERSION = "0.1.9";
+  const SCRIPT_VERSION = "0.1.12";
   const SCRIPT_DATE = "2026-10-14";
 
   const api = { SCRIPT_VERSION, SCRIPT_DATE };
