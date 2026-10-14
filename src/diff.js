@@ -1,6 +1,8 @@
 // Diff sémantique entre deux modèles TwinCAT (voir model.js) et diff ligne à ligne du ST.
 
 (function (root) {
+  const L = typeof module !== "undefined" && module.exports ? require("./i18n.js") : root.TcPr;
+
   // ---------- Diff de lignes (LCS avec élagage du préfixe et du suffixe communs) ----------
 
   function normWs(s) {
@@ -180,7 +182,7 @@
     if (a.lineIds.join("\n") !== b.lineIds.join("\n")) out.push("LineIds");
     const va = a.versions.join(", ");
     const vb = b.versions.join(", ");
-    if (va !== vb) out.push(`version XAE (${va || "aucune"} → ${vb || "aucune"})`);
+    if (va !== vb) out.push(L.t("noise.version", { a: va || L.t("noise.none"), b: vb || L.t("noise.none") }));
     if (a.guids.slice().sort().join() !== b.guids.slice().sort().join()) out.push("GUID");
     return out;
   }

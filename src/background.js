@@ -15,7 +15,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (!msg || msg.type !== "tcpr-fetch") return false;
   // On ne relaie que les URL utiles à l'extension, jamais une URL arbitraire.
   if (!ALLOWED.test(msg.url)) {
-    sendResponse({ ok: false, status: 0, error: "URL refusée" });
+    sendResponse({ ok: false, status: 0, error: "refused" });
     return false;
   }
   // Délai maximal : une requête bloquée ne doit pas figer le panneau indéfiniment.
@@ -32,7 +32,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       sendResponse({
         ok: false,
         status: 0,
-        error: e && e.name === "AbortError" ? "délai de 60 s dépassé" : String(e && e.message ? e.message : e),
+        error: e && e.name === "AbortError" ? "timeout" : String(e && e.message ? e.message : e),
       })
     );
   return true; // réponse asynchrone

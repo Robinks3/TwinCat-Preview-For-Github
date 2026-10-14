@@ -10,12 +10,15 @@
 
 (function (root) {
   const X = typeof module !== "undefined" && module.exports ? require("./xml.js") : root.TcPr;
+  const L = typeof module !== "undefined" && module.exports ? require("./i18n.js") : root.TcPr;
 
   const GUID_TEXT_RE = /^\s*<(\w+)>\{?[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\}?<\/\1>\s*$/;
   const GUID_RE = /\{?[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\}?/g;
 
-  const CHILD_LABELS = { Method: "Méthode", Action: "Action", Transition: "Transition", Property: "Propriété" };
-  const OBJECT_LABELS = { DUT: "DUT", GVL: "GVL", Itf: "Interface", Task: "Tâche" };
+  // Libellés traduits à l'appel (la langue peut changer).
+  const CHILD_KEYS = { Method: "label.method", Action: "label.action", Transition: "label.transition", Property: "label.property" };
+  const childLabel = (tag) => (CHILD_KEYS[tag] ? L.t(CHILD_KEYS[tag]) : null);
+  const objectLabel = (tag) => ({ DUT: "DUT", GVL: "GVL", Itf: L.t("label.interface"), Task: L.t("label.task") })[tag];
 
   // Forme d'une ligne sans ce qui relève du bruit : deux lignes de même clé ne diffèrent que par du bruit.
   function noiseKey(line) {
@@ -92,14 +95,14 @@
 
     const walkObject = (el, key, label) => {
       for (const c of el.children) {
-        if (c.tag === "Declaration") markCode(c, `${key}#decl`, `${label} · déclaration`);
+        if (c.tag === "Declaration") markCode(c, `${key}#decl`, `${label} · ${L.t("sec.decl")}`);
         else if (c.tag === "Implementation") {
           const st = X.child(c, "ST");
-          if (st) markCode(st, `${key}#impl`, `${label} · implémentation`);
+          if (st) markCode(st, `${key}#impl`, `${label} · ${L.t("sec.impl")}`);
           else mark(c, "config"); // langage graphique : XML laissé visible
-        } else if (CHILD_LABELS[c.tag]) {
+        } else if (childLabel(c.tag)) {
           const name = c.attrs.Name || "?";
-          walkObject(c, `${key}/${c.tag}:${name}`, `${CHILD_LABELS[c.tag]} ${name}`);
+          walkObject(c, `${key}/${c.tag}:${name}`, `${childLabel(c.tag)} ${name}`);
         } else if (c.tag === "Get" || c.tag === "Set") {
           walkObject(c, `${key}/${c.tag}`, `${label} · ${c.tag}`);
         } else if (c.tag !== "LineIds" && c.tag !== "Folder") {
@@ -116,7 +119,7 @@
           lines[lineOf(obj.start)] = { role: "scaffold" };
           lines[lineOf(obj.end - 1)] = { role: "scaffold" };
         } else {
-          const kind = obj.tag === "POU" ? declKeyword(obj) : OBJECT_LABELS[obj.tag] || obj.tag;
+          const kind = obj.tag === "POU" ? declKeyword(obj) : objectLabel(obj.tag) || obj.tag;
           walkObject(obj, `${obj.tag}:${name}`, `${kind} ${name}`);
         }
       }

@@ -45,9 +45,9 @@
     if (forceReload || !loaders.has(id)) {
       const sha = headShaFromPage();
       const ref = headRefFromPage();
-      T.debug.log("chargeur", `création pour ${id}`, {
-        sha_page: sha ? sha.slice(0, 7) : "absent",
-        branche: ref ? `${ref.owner}/${ref.repo}:${ref.ref}` : "absente",
+      T.debug.log("chargeur", T.t("log.loaderCreate", { id }), {
+        sha_page: sha ? sha.slice(0, 7) : T.t("absent"),
+        branche: ref ? `${ref.owner}/${ref.repo}:${ref.ref}` : T.t("absente"),
       });
       const p = T.createPrLoader(pr, T.isTwinCatPath, {
         headShaHint: sha,
@@ -55,7 +55,7 @@
         onProgress: (t) => progressListeners.forEach((l) => l(t)),
       });
       p.catch((e) => {
-        T.debug.log("chargeur", "échec", { erreur: e.message });
+        T.debug.log("chargeur", T.t("log.fail"), { erreur: e.message });
         loaders.delete(id); // un échec ne doit pas rester en cache
       });
       loaders.set(id, p);
@@ -98,7 +98,7 @@
       const loader = await getLoader(pr, forceReload);
       if (overlay !== current) return;
       if (!loader.files.length) {
-        current.showMessage("Aucun fichier TwinCAT dans cette PR.");
+        current.showMessage(T.t("panel.noFiles"));
         current.setStatus("");
         return;
       }
@@ -108,7 +108,7 @@
       current.setList(loader.files, loader.load, refresh);
       refresh();
     } catch (e) {
-      if (overlay === current) current.showMessage(`Échec du chargement : ${e.message}`, true);
+      if (overlay === current) current.showMessage(T.t("panel.loadFailed", { err: e.message }), true);
     }
   }
 
@@ -116,9 +116,13 @@
   function statusLine(loader) {
     const s = loader.stats;
     const n = loader.files.length;
-    const sec = (ms) => `${(ms / 1000).toFixed(1).replace(".", ",")} s`;
-    const sha = s.headSha ? ` · SHA ${s.headSha.slice(0, 7)} (${s.shaSource})` : "";
-    return `${n} fichier${n > 1 ? "s" : ""} TwinCAT · ${s.fetched}/${s.toFetch} modifié${s.toFetch > 1 ? "s" : ""} téléchargé${s.fetched > 1 ? "s" : ""} · diff ${sec(s.diffMs)} (${s.diffKb} Ko)${sha}`;
+    const sec = (ms) => `${T.i18n.num(ms / 1000, 1)} s`;
+    const sha = s.headSha ? ` · SHA ${s.headSha.slice(0, 7)} (${T.t(`sha.src.${s.shaSource}`)})` : "";
+    return [
+      T.tn("status.files", n),
+      T.t("status.fetched", { fetched: s.fetched, toFetch: s.toFetch }),
+      T.t("status.diff", { sec: sec(s.diffMs), kb: s.diffKb }),
+    ].join(" · ") + sha;
   }
 
   // ---------- Mise en forme intégrée ----------
@@ -178,52 +182,56 @@
         if (pr && loaders.has(prId(pr))) {
           try {
             const l = await loaders.get(prId(pr));
-            extra.push(`Chargeur : ${statusLine(l)}`);
+            extra.push(T.t("report.loader", { s: statusLine(l) }));
           } catch (e) {
-            extra.push(`Chargeur : échec (${e.message})`);
+            extra.push(T.t("report.loaderFail", { err: e.message }));
           }
         }
-        extra.push(`Mise en forme intégrée : ${T.inline.enabled ? "active" : "inactive"} · tables de diff : ${document.querySelectorAll("table[data-diff-anchor]").length} · lignes : ${document.querySelectorAll("tr.diff-line-row").length}`);
+        extra.push(T.t("report.inline", {
+          state: T.t(T.inline.enabled ? "report.on" : "report.off"),
+          tables: document.querySelectorAll("table[data-diff-anchor]").length,
+          rows: document.querySelectorAll("tr.diff-line-row").length,
+        }));
         const text = T.debug.report(extra);
         try {
           await navigator.clipboard.writeText(text);
-          copyBtn.textContent = "Copié ✓";
+          copyBtn.textContent = T.t("debug.copied");
         } catch (e) {
           // Presse-papiers refusé : on affiche le rapport pour une copie manuelle.
           list.textContent = text;
-          copyBtn.textContent = "Sélectionne et copie le texte";
+          copyBtn.textContent = T.t("debug.selectCopy");
         }
-        setTimeout(() => (copyBtn.textContent = "Copier le rapport"), 2500);
+        setTimeout(() => (copyBtn.textContent = T.t("debug.copy")), 2500);
       },
-    }, "Copier le rapport");
+    }, T.t("debug.copy"));
     const el = T.h("div", { class: "tc-debug" },
       T.h("div", { class: "tc-debug-head" },
-        T.h("strong", {}, "Debug TcReview"),
+        T.h("strong", {}, T.t("debug.title")),
         T.h("span", { class: "tc-spacer" }),
         copyBtn,
         T.h("button", {
           class: "tc-btn",
-          title: "Journal sauvegardé de la session précédente (utile après une page figée)",
+          title: T.t("debug.previousTitle"),
           onclick: async (e) => {
             const prev = T.debug.previousReport();
             const btn = e.currentTarget;
             if (!prev) {
-              btn.textContent = "Aucun";
+              btn.textContent = T.t("debug.none");
             } else {
               try {
                 await navigator.clipboard.writeText(prev);
-                btn.textContent = "Copié ✓";
+                btn.textContent = T.t("debug.copied");
               } catch (err) {
                 list.textContent = prev;
-                btn.textContent = "Affiché ci-dessous";
+                btn.textContent = T.t("debug.shownBelow");
               }
             }
-            setTimeout(() => (btn.textContent = "Rapport précédent"), 2500);
+            setTimeout(() => (btn.textContent = T.t("debug.previous")), 2500);
           },
-        }, "Rapport précédent"),
-        T.h("button", { class: "tc-btn", onclick: () => { T.debug.clear(); render(); } }, "Vider"),
-        T.h("button", { class: "tc-btn", onclick: () => { T.debug.setEnabled(false); debugPanel.close(); } }, "Désactiver"),
-        T.h("button", { class: "tc-btn", title: "Fermer (le journal continue)", onclick: () => debugPanel.close() }, "✕")),
+        }, T.t("debug.previous")),
+        T.h("button", { class: "tc-btn", onclick: () => { T.debug.clear(); render(); } }, T.t("debug.clear")),
+        T.h("button", { class: "tc-btn", onclick: () => { T.debug.setEnabled(false); debugPanel.close(); } }, T.t("debug.disable")),
+        T.h("button", { class: "tc-btn", title: T.t("debug.closeTitle"), onclick: () => debugPanel.close() }, "✕")),
       list);
     document.body.append(el);
     debugPanel = {
@@ -243,7 +251,7 @@
   function refreshBar() {
     if (!bar) return;
     bar.inlineBtn.setAttribute("aria-pressed", String(T.inline.enabled));
-    bar.inlineBtn.textContent = T.inline.enabled ? "TwinCAT : intégré ✓" : "TwinCAT : intégré";
+    bar.inlineBtn.textContent = T.t(T.inline.enabled ? "bar.inlineOn" : "bar.inline");
     bar.panelBtn.setAttribute("aria-pressed", String(!!overlay));
     bar.debugBtn.setAttribute("aria-pressed", String(!!debugPanel));
     bar.debugBtn.classList.toggle("tc-on", T.debug.enabled);
@@ -252,11 +260,11 @@
   function buildBar() {
     const inlineBtn = T.h("button", {
       class: "tc-btn tc-btn-main",
-      title: "Mettre en forme les fichiers TwinCAT directement dans le diff (icône de l'extension)",
+      title: T.t("bar.inlineTitle"),
       onclick: () => setInlineWanted(!T.inline.enabled),
     });
-    const panelBtn = T.h("button", { class: "tc-btn", title: "Vue d'ensemble en panneau (Alt+T)", onclick: () => (overlay ? closePanel() : openPanel(false)) }, "Panneau");
-    const debugBtn = T.h("button", { class: "tc-btn", title: "Mode debug : journal des temps de chargement", onclick: toggleDebugPanel }, "🐞");
+    const panelBtn = T.h("button", { class: "tc-btn", title: T.t("bar.panelTitle"), onclick: () => (overlay ? closePanel() : openPanel(false)) }, T.t("bar.panel"));
+    const debugBtn = T.h("button", { class: "tc-btn", title: T.t("bar.debugTitle"), onclick: toggleDebugPanel }, "🐞");
     const el = T.h("div", { class: "tc-bar" }, inlineBtn, panelBtn, debugBtn);
     return { el, inlineBtn, panelBtn, debugBtn };
   }

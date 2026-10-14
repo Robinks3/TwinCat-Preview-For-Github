@@ -82,17 +82,8 @@
 
   // ---------- Rendu ----------
 
-  const STATUS_LABELS = {
-    added: "ajouté",
-    removed: "supprimé",
-    modified: "modifié",
-    renamed: "renommé",
-    unchanged: "inchangé",
-    noise: "bruit XML seulement",
-  };
-
   function badge(status) {
-    return h("span", { class: `tc-badge tc-badge-${status}` }, STATUS_LABELS[status] || status);
+    return h("span", { class: `tc-badge tc-badge-${status}` }, T.t(`status.${status}`));
   }
 
   // Lignes d'affichage côte à côte : [gauche, droite], chacune une opération ou null.
@@ -133,7 +124,7 @@
         const more = r.t === "more";
         table.append(
           h("tr", { class: "tc-skip", onclick: () => onExpand(more ? `${sec.key}#all` : sec.key) },
-            h("td", { colspan: 4 }, more ? `Afficher les ${r.count} lignes suivantes` : `⋯ ${r.count} ligne${r.count > 1 ? "s" : ""} inchangée${r.count > 1 ? "s" : ""}`))
+            h("td", { colspan: 4 }, more ? T.t("code.more", { n: r.count }) : T.tn("code.skip", r.count)))
         );
         stA.inBlock = stB.inBlock = false;
         continue;
@@ -159,14 +150,14 @@
       if (o.t === "more") {
         table.append(
           h("tr", { class: "tc-skip", onclick: () => onExpand(`${sec.key}#all`) },
-            h("td", { colspan: 4 }, `Afficher les ${o.count} lignes suivantes`))
+            h("td", { colspan: 4 }, T.t("code.more", { n: o.count })))
         );
         continue;
       }
       if (o.t === "skip") {
         table.append(
-          h("tr", { class: "tc-skip", onclick: () => onExpand(sec.key), title: "Afficher tout" },
-            h("td", { colspan: 4 }, `⋯ ${o.count} ligne${o.count > 1 ? "s" : ""} inchangée${o.count > 1 ? "s" : ""}`))
+          h("tr", { class: "tc-skip", onclick: () => onExpand(sec.key), title: T.t("code.showAll") },
+            h("td", { colspan: 4 }, T.tn("code.skip", o.count)))
         );
         state.inBlock = false;
         continue;
@@ -195,7 +186,7 @@
     const cap = opts.expanded.has(`${sec.key}#all`) ? Infinity : MAX_PROP_ROWS;
     const rows = kept.slice(0, cap);
     const table = h("table", { class: "tc-props" },
-      h("thead", {}, h("tr", {}, h("th", {}, "Propriété"), h("th", {}, "Avant"), h("th", {}, "Après"))));
+      h("thead", {}, h("tr", {}, h("th", {}, T.t("props.key")), h("th", {}, T.t("props.before")), h("th", {}, T.t("props.after")))));
     const tbody = h("tbody");
     for (const r of rows) {
       const cls = { "+": "tc-add", "-": "tc-del", "~": "tc-mod", "=": "" }[r.t];
@@ -203,10 +194,10 @@
     }
     if (kept.length > cap && onExpand) {
       tbody.append(h("tr", { class: "tc-more", onclick: () => onExpand(`${sec.key}#all`) },
-        h("td", { colspan: 3 }, `Afficher les ${kept.length - cap} propriétés suivantes`)));
+        h("td", { colspan: 3 }, T.t("props.more", { n: kept.length - cap }))));
     }
     table.append(tbody);
-    return [table, hidden ? h("div", { class: "tc-muted" }, `${hidden} propriété${hidden > 1 ? "s" : ""} inchangée${hidden > 1 ? "s" : ""} masquée${hidden > 1 ? "s" : ""}`) : null];
+    return [table, hidden ? h("div", { class: "tc-muted" }, T.tn("props.hidden", hidden)) : null];
   }
 
 
@@ -340,12 +331,12 @@
       ko: Math.round(((entry.base || "").length + (entry.head || "").length) / 1024),
     });
     let value;
-    if (entry.error) value = { error: `Impossible d'analyser ce fichier : ${entry.error}`, status: "modified" };
+    if (entry.error) value = { error: T.t("file.cannotAnalyze", { err: entry.error }), status: "modified" };
     else {
       const base = entry.base === null ? null : T.modelFile(entry.oldPath || entry.path, entry.base);
       const head = entry.head === null ? null : T.modelFile(entry.path, entry.head);
       const parseErr = (base && base.error) || (head && head.error);
-      if (parseErr) value = { error: `XML illisible : ${parseErr}`, status: "modified" };
+      if (parseErr) value = { error: T.t("file.badXml", { err: parseErr }), status: "modified" };
       else {
         const d = T.diffModels(base, head, opts);
         const m = head || base;
@@ -362,7 +353,7 @@
     return value;
   }
 
-  const PART_LABELS = { decl: "Déclaration", impl: "Code", attrs: "Attributs", props: "Propriétés" };
+  const partLabel = (part) => (["decl", "impl", "attrs", "props"].includes(part) ? T.t(`part.${part}`) : null);
 
   // Lignes qu'une section afficherait (estimation, avant rendu).
   function estimateRows(sec, opts) {
@@ -381,14 +372,14 @@
       if (sec.part === "decl" && isTrivialDecl(before) && isTrivialDecl(after)) return null;
       if (sec.part === "impl" && !before.trim() && !after.trim()) return null;
     }
-    const label = sec.lang === "xml" ? sec.label.replace(/^.*· /, "") : PART_LABELS[sec.part] || sec.label;
+    const label = sec.lang === "xml" ? sec.label.replace(/^.*· /, "") : partLabel(sec.part) || sec.label;
     const head = h("div", { class: "tc-part-label" }, label, sec.status !== "unchanged" && sec.status !== "added" && sec.status !== "removed" ? badge(sec.status) : null);
     const rows = estimateRows(sec, opts);
     const forced = opts.expanded.has(`${sec.key}#show`);
     if (budget && !forced && rows > budget.rows) {
       budget.rows = 0; // les sections suivantes du fichier restent repliées aussi
       return h("div", { class: `tc-part tc-part-${sec.part || "props"}` }, head,
-        h("div", { class: "tc-folded", onclick: () => onExpand(`${sec.key}#show`) }, `Afficher (${rows} lignes)`));
+        h("div", { class: "tc-folded", onclick: () => onExpand(`${sec.key}#show`) }, T.t("part.show", { n: rows })));
     }
     if (budget && !forced) budget.rows -= rows;
     return h("div", { class: `tc-part tc-part-${sec.part || "props"}` }, head,
@@ -408,7 +399,7 @@
     const body = h("div", { class: "tc-node-body" },
       parts,
       shownChildren.map((c) => renderNode(c, ctx, depth + 1)),
-      hiddenChildren ? h("div", { class: "tc-muted tc-hidden-note" }, `${hiddenChildren} élément${hiddenChildren > 1 ? "s" : ""} inchangé${hiddenChildren > 1 ? "s" : ""}`) : null);
+      hiddenChildren ? h("div", { class: "tc-muted tc-hidden-note" }, T.tn("node.hidden", hiddenChildren)) : null);
     const empty = !parts.length && !shownChildren.length;
     const sig = node.signature && node.signature !== node.label ? node.signature : "";
     return h("details", { class: `tc-node tc-depth-${Math.min(depth, 3)}${empty ? " tc-node-empty" : ""}`, id, open: !empty },
@@ -441,18 +432,18 @@
   function fillFileBody(entry, ctx) {
     if (entry.ui.filled) return;
     if (entry.pending) {
-      entry.ui.body.replaceChildren(h("div", { class: "tc-muted tc-pad" }, "Téléchargement…"));
+      entry.ui.body.replaceChildren(h("div", { class: "tc-muted tc-pad" }, T.t("file.downloading")));
       return;
     }
     const bytes = (entry.base || "").length + (entry.head || "").length;
     if (bytes > AUTO_ANALYZE_BYTES && !entry.forceAnalyze && !entry.error) {
-      const mo = (bytes / 1e6).toFixed(1).replace(".", ",");
-      T.debug.log("rendu", `analyse différée (${mo} Mo) ${entry.path}`);
+      const mo = T.i18n.num(bytes / 1e6, 1);
+      T.debug.log("rendu", T.t("log.deferred", { mo, p: entry.path }));
       entry.ui.body.classList.remove("tc-file-pending");
       entry.ui.body.replaceChildren(
         h("div", { class: "tc-muted tc-pad" },
-          `Fichier volumineux (${mo} Mo) : analyse à la demande pour ne pas figer la page. `,
-          h("button", { class: "tc-btn tc-btn-inline", onclick: () => { entry.forceAnalyze = true; ctx.refill(entry); } }, "Analyser"))
+          T.t("file.big", { mo }),
+          h("button", { class: "tc-btn tc-btn-inline", onclick: () => { entry.forceAnalyze = true; ctx.refill(entry); } }, T.t("file.analyze")))
       );
       return;
     }
@@ -462,10 +453,10 @@
     const parts = [];
     if (a.error) parts.push(h("div", { class: "tc-error" }, a.error));
     else {
-      if (a.noise.length) parts.push(h("div", { class: "tc-noise" }, `Bruit ignoré : ${a.noise.join(", ")}`));
+      if (a.noise.length) parts.push(h("div", { class: "tc-noise" }, T.t("file.noise", { list: a.noise.join(", ") })));
       if (a.status !== "noise" || ctx.opts.showUnchanged) {
         for (const n of a.nodes) parts.push(renderNode(n, ctx, 0));
-        if (!a.nodes.length) parts.push(h("div", { class: "tc-muted tc-pad" }, "Aucune section structurée."));
+        if (!a.nodes.length) parts.push(h("div", { class: "tc-muted tc-pad" }, T.t("file.noSections")));
       }
     }
     entry.ui.badge.replaceWith((entry.ui.badge = badge(a.status)));
@@ -572,11 +563,11 @@
     };
     const opts = { ignoreWs: false, showUnchanged: false, split: pref("split", true), expanded: new Set() };
     let entries = [];
-    let statusText = "Chargement…";
+    let statusText = T.t("panel.loading");
     let message = null;
 
     const main = h("div", { class: "tc-body" });
-    const nav = h("nav", { class: "tc-nav", "aria-label": "Arborescence des fichiers TwinCAT" });
+    const nav = h("nav", { class: "tc-nav", "aria-label": T.t("panel.navLabel") });
     const status = h("span", { class: "tc-muted" }, statusText);
     const ctx = { opts, onExpand: null, ids: { next: 0 } };
 
@@ -603,8 +594,8 @@
           entry.ui.body.classList.remove("tc-file-pending");
           entry.ui.body.replaceChildren(
             h("div", { class: "tc-muted tc-pad" },
-              "Fichier probablement volumineux : téléchargement à la demande. ",
-              h("button", { class: "tc-btn tc-btn-inline", onclick: () => { entry.allowFetch = true; entry.forceAnalyze = true; fill(entry); } }, "Télécharger et analyser"))
+              T.t("file.heavy"),
+              h("button", { class: "tc-btn tc-btn-inline", onclick: () => { entry.allowFetch = true; entry.forceAnalyze = true; fill(entry); } }, T.t("file.fetchAnalyze")))
           );
           return;
         }
@@ -664,7 +655,7 @@
       const height = entry.ui.body.offsetHeight;
       entry.ui.filled = false;
       entry.ui.body.replaceChildren(h("div", { class: "tc-placeholder", style: `height:${height}px` }));
-      T.debug.log("rendu", `démonté ${entry.path}`, { px: height });
+      T.debug.log("rendu", T.t("log.unmounted", { p: entry.path }), { px: height });
     };
     // Deux seuils (hystérésis) : montage à 1 500 px de l'écran, démontage seulement au-delà de
     // 5 000 px, pour qu'un aller-retour de défilement ne refasse pas analyse et rendu.
@@ -749,27 +740,27 @@
     let navShown = pref("nav", true);
     const navBtn = h("button", {
       class: "tc-btn tc-nav-toggle",
-      title: "Afficher / masquer l'arborescence",
+      title: T.t("panel.navToggleTitle"),
       onclick: () => {
         navShown = !navShown;
         savePref("nav", navShown);
         nav.hidden = !navShown;
         navBtn.setAttribute("aria-pressed", String(navShown));
       },
-    }, "☰ Arbre");
+    }, T.t("panel.navToggle"));
     nav.hidden = !navShown;
     navBtn.setAttribute("aria-pressed", String(navShown));
 
-    const panel = h("div", { class: "tc-panel", role: "dialog", "aria-label": "Vue TwinCAT" },
+    const panel = h("div", { class: "tc-panel", role: "dialog", "aria-label": T.t("panel.aria") },
       h("div", { class: "tc-top" },
         navBtn,
-        h("strong", {}, `Vue TwinCAT · PR #${pr.number}`),
+        h("strong", {}, T.t("panel.title", { n: pr.number })),
         status,
         h("span", { class: "tc-spacer" }),
-        toggle("Côte à côte", "split", true),
-        toggle("Ignorer les espaces", "ignoreWs"),
-        toggle("Montrer l'inchangé", "showUnchanged"),
-        h("button", { class: "tc-close", onclick: onClose, title: "Fermer (Échap)" }, "✕")),
+        toggle(T.t("panel.split"), "split", true),
+        toggle(T.t("panel.ignoreWs"), "ignoreWs"),
+        toggle(T.t("panel.showUnchanged"), "showUnchanged"),
+        h("button", { class: "tc-close", onclick: onClose, title: T.t("panel.close") }, "✕")),
       h("div", { class: "tc-split" }, nav, main),
       h("div", { class: "tc-foot tc-muted" }, `TcReview for GitHub v${T.SCRIPT_VERSION}`));
     const overlay = h("div", { class: "tc-overlay", onclick: (e) => { if (e.target === overlay) onClose(); } }, panel);

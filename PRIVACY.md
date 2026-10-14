@@ -1,33 +1,36 @@
-# Confidentialité
+# Privacy
 
-TcReview for GitHub fonctionne entièrement dans le navigateur. Aucune donnée n'est envoyée ailleurs qu'à GitHub, et aucune n'est envoyée au développeur de l'extension ni à un tiers.
+**English** · [Français](PRIVACY.fr.md)
 
-## Ce que l'extension lit
+TcReview for GitHub runs entirely in the browser. No data is sent anywhere other than GitHub, and nothing is sent to the extension's developer or to any third party.
 
-- La page de pull request ouverte sur github.com : structure du diff, nom de la branche de tête et SHA du dernier commit quand la page les contient.
-- Via la session GitHub déjà ouverte dans le navigateur, et seulement sur des URL de github.com de la forme :
-  - `/<propriétaire>/<dépôt>/pull/<n>.diff` et `.patch` ;
-  - `/<propriétaire>/<dépôt>/raw/<commit ou branche>/<chemin>`.
+## What the extension reads
 
-Ces adresses redirigent vers `patch-diff.githubusercontent.com` et `raw.githubusercontent.com` (domaines de GitHub), d'où les trois autorisations d'hôte du manifeste. Le service worker refuse toute autre URL.
+- The pull request page open on github.com: diff structure, head branch name and last commit SHA when the page contains them.
+- Through the GitHub session already open in the browser, and only on github.com URLs of the form:
+  - `/<owner>/<repo>/pull/<n>.diff` and `.patch`;
+  - `/<owner>/<repo>/raw/<commit or branch>/<path>`.
 
-## Ce que l'extension stocke
+These addresses redirect to `patch-diff.githubusercontent.com` and `raw.githubusercontent.com` (GitHub domains), hence the three host permissions in the manifest. The service worker rejects any other URL.
 
-Dans le `localStorage` de github.com, sur la machine uniquement :
+## What the extension stores
 
-| Clé | Contenu |
+In github.com's `localStorage`, on the machine only:
+
+| Key | Content |
 |---|---|
-| `tcpr-inline` | mise en forme intégrée active ou non |
-| `tcpr-split`, `tcpr-nav` | préférences d'affichage du panneau |
-| `tcpr-debug` | mode debug actif ou non |
-| `tcpr-debug-journal` | 400 dernières lignes du journal debug (si le mode debug est actif) : noms de dépôt, chemins de fichiers, durées, tailles ; jamais le contenu des fichiers |
+| `tcpr-inline` | inline formatting on or off |
+| `tcpr-split`, `tcpr-nav` | panel display preferences |
+| `tcpr-debug` | debug mode on or off |
+| `tcpr-lang` | forced language (only if set by hand) |
+| `tcpr-debug-journal` | last 400 lines of the debug log (when debug mode is on): repository names, file paths, durations, sizes; never file contents |
 
-Le contenu des fichiers téléchargés reste en mémoire, le temps de la page.
+Downloaded file contents stay in memory for the lifetime of the page.
 
-## Ce que l'extension n'utilise pas
+## What the extension does not use
 
-Aucun token GitHub, aucun compte, aucune télémétrie, aucun service d'analyse, aucun serveur externe, aucune bibliothèque chargée depuis Internet.
+No GitHub token, no account, no telemetry, no analytics service, no external server, no library loaded from the Internet.
 
-## Mode debug
+## Debug mode
 
-Le rapport copié par **Copier le rapport** contient le nom du dépôt, le numéro de la PR et les chemins des fichiers. Il ne quitte la machine que si vous le collez quelque part : le relire avant de le partager.
+The report copied with **Copy report** contains the repository name, the PR number and file paths. It only leaves the machine if you paste it somewhere: review it before sharing.

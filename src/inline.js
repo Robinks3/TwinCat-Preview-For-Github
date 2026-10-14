@@ -53,14 +53,14 @@
 
   // ---------- Classement heuristique (texte seul, sans le fichier complet) ----------
 
-  const OBJ_LABELS = { POU: "POU", DUT: "DUT", GVL: "GVL", Itf: "Interface", Method: "Méthode", Property: "Propriété", Action: "Action", Transition: "Transition" };
+  const OBJ_KEYS = { Method: "label.method", Property: "label.property", Action: "label.action", Transition: "label.transition" };
 
   function newHeuristic() {
     return { obj: null, acc: null, part: null };
   }
 
   function sectionLabel(h) {
-    return [h.obj, h.acc].filter(Boolean).join(" · ") + (h.part === "decl" ? " · déclaration" : " · implémentation");
+    return [h.obj, h.acc].filter(Boolean).join(" · ") + ` · ${T.t(h.part === "decl" ? "sec.decl" : "sec.impl")}`;
   }
 
   // Décide du traitement d'une ligne d'après son texte et l'état courant (mis à jour en place).
@@ -76,7 +76,7 @@
         h.obj = name;
         h.acc = null;
       } else {
-        h.obj = `${OBJ_LABELS[m[1]]} ${name}`;
+        h.obj = `${T.t(OBJ_KEYS[m[1]])} ${name}`;
         h.acc = null;
       }
       h.part = null;
@@ -157,12 +157,12 @@
     loaderPromise
       .then((loader) => {
         const k = loader.files.findIndex((f) => f.path === st.path);
-        if (k < 0) throw new Error("fichier absent du .diff");
+        if (k < 0) throw new Error(T.t("err.notInDiff"));
         return loader.load(k);
       })
       .then((entry) => {
         if (entry.error) throw new Error(entry.error);
-        const end = T.debug.time("intégré", `classement exact ${st.path}`);
+        const end = T.debug.time("intégré", T.t("log.exact", { p: st.path }));
         st.exact = {
           base: entry.base ? T.classifyLines(st.path, entry.base) : null,
           head: entry.head ? T.classifyLines(st.path, entry.head) : null,
@@ -171,7 +171,7 @@
         end();
         markDirty(table);
       })
-      .catch((e) => T.debug.log("intégré", `classement exact impossible ${st.path}`, { erreur: e.message }));
+      .catch((e) => T.debug.log("intégré", T.t("log.exactFail", { p: st.path }), { erreur: e.message }));
   }
 
   // ---------- Application sur une table ----------
@@ -216,8 +216,8 @@
     requestExact(st, table);
     const stamp = st.exact ? `x${st.version}` : "h";
     const rowCount = table.querySelectorAll("tr.diff-line-row").length;
-    if (rowCount > 3000) T.debug.mark("intégré", `grosse table ${path.split("/").pop()}`, { lignes: rowCount });
-    const end = T.debug.time("intégré", `passe ${path.split("/").pop()}`, { mode: st.exact ? "exact" : "heuristique" });
+    if (rowCount > 3000) T.debug.mark("intégré", T.t("log.bigTable", { f: path.split("/").pop() }), { lignes: rowCount });
+    const end = T.debug.time("intégré", T.t("log.pass", { f: path.split("/").pop() }), { mode: T.t(st.exact ? "mode.exact" : "mode.heuristic") });
 
     const rows = table.querySelectorAll("tr.diff-line-row");
     const h = newHeuristic();
@@ -410,7 +410,7 @@
     enabled = true;
     getLoader = loaderGetter;
     loaderPromise = null;
-    T.debug.log("intégré", "mise en forme intégrée activée", { tables: document.querySelectorAll("table[data-diff-anchor]").length });
+    T.debug.log("intégré", T.t("log.inlineOn"), { tables: document.querySelectorAll("table[data-diff-anchor]").length });
     viewObs = new IntersectionObserver(
       (items) => {
         for (const it of items) {
@@ -425,7 +425,7 @@
     watchTables();
     markDirty(null);
     if (!document.querySelector("table[data-diff-anchor]")) {
-      T.debug.log("intégré", "aucune table de diff de la nouvelle vue GitHub sur cette page (onglet « Files changed » ?)");
+      T.debug.log("intégré", T.t("log.noTables"));
     }
   }
 
@@ -438,7 +438,7 @@
     dirty.clear();
     for (const table of document.querySelectorAll("table[data-diff-anchor]")) table.tcrWatched = false;
     for (const tr of document.querySelectorAll("tr[data-tcr-stamp]")) clearRow(tr);
-    T.debug.log("intégré", "mise en forme intégrée désactivée");
+    T.debug.log("intégré", T.t("log.inlineOff"));
   }
 
   // Changement de PR (navigation sans rechargement) : on oublie les états de fichier.

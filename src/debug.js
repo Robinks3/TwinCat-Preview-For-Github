@@ -15,6 +15,7 @@
     }
   }
 
+  const tr = (k, p) => (root.TcPr && root.TcPr.t ? root.TcPr.t(k, p) : k);
   const JOURNAL_KEY = "tcpr-debug-journal";
   const JOURNAL_LINES = 400;
 
@@ -33,7 +34,8 @@
     state.saveQueued = false;
     try {
       const lines = state.events.slice(-JOURNAL_LINES).map(line);
-      const head = `Journal sauvegardé · ${new Date().toLocaleString("fr-FR")} · ${typeof location !== "undefined" ? location.pathname : ""}`;
+      const lang = root.TcPr && root.TcPr.i18n ? root.TcPr.i18n.lang : "fr";
+      const head = tr("report.saved", { date: new Date().toLocaleString(lang === "fr" ? "fr-FR" : "en-GB"), page: typeof location !== "undefined" ? location.pathname : "" });
       localStorage.setItem(JOURNAL_KEY, [head, ...lines].join("\n"));
     } catch (e) {
       // quota ou stockage indisponible : tant pis pour la sauvegarde
@@ -64,7 +66,7 @@
 
   // Repère de début d'un traitement lourd, sauvegardé tout de suite.
   function mark(cat, msg, data) {
-    log(cat, `début · ${msg}`, data, true);
+    log(cat, tr("log.start", { msg }), data, true);
   }
 
   // Tâches longues (page bloquée plus de 200 ms), signalées par le navigateur une fois terminées.
@@ -73,7 +75,7 @@
       if (typeof PerformanceObserver === "undefined") return;
       new PerformanceObserver((list) => {
         for (const e of list.getEntries()) {
-          if (e.duration >= 200) log("gel", "tâche longue (page bloquée)", { ms: Math.round(e.duration) });
+          if (e.duration >= 200) log("gel", tr("log.longTask"), { ms: Math.round(e.duration) });
         }
       }).observe({ type: "longtask", buffered: false });
     } catch (e) {
@@ -96,14 +98,16 @@
     } catch (e) {
       // stockage indisponible : le réglage vaut pour la page seulement
     }
-    if (on) log("debug", "mode debug activé");
+    if (on) log("debug", tr("log.enabled"));
   }
 
   function line(ev) {
+    // Catégories et clés de données traduites à l'affichage (gardées en français dans le code).
+    const key = (k) => (root.TcPr && root.TcPr.i18n ? root.TcPr.i18n.dataKey(k) : k);
     const d = ev.data
-      ? " " + Object.entries(ev.data).map(([k, v]) => `${k}=${k === "ms" ? fmt(v) : v}`).join(" ")
+      ? " " + Object.entries(ev.data).map(([k, v]) => `${key(k)}=${k === "ms" ? fmt(v) : v}`).join(" ")
       : "";
-    return `${fmt(ev.t).padStart(9)}  [${ev.cat}] ${ev.msg}${d}`;
+    return `${fmt(ev.t).padStart(9)}  [${tr(`cat.${ev.cat}`)}] ${ev.msg}${d}`;
   }
 
   // Synthèse par catégorie + journal complet.
@@ -120,16 +124,16 @@
       }
     }
     const head = [
-      `TcReview for GitHub ${root.TcPr && root.TcPr.SCRIPT_VERSION} · rapport debug`,
-      `Page : ${typeof location !== "undefined" ? location.pathname : "?"}`,
-      `Navigateur : ${typeof navigator !== "undefined" ? navigator.userAgent.replace(/^.*(Chrome\/[\d.]+).*$/, "$1") : "?"}`,
-      `Événements : ${state.events.length}`,
+      tr("report.title", { name: "TcReview for GitHub", v: root.TcPr && root.TcPr.SCRIPT_VERSION }),
+      tr("report.page", { p: typeof location !== "undefined" ? location.pathname : "?" }),
+      tr("report.browser", { b: typeof navigator !== "undefined" ? navigator.userAgent.replace(/^.*(Chrome\/[\d.]+).*$/, "$1") : "?" }),
+      tr("report.events", { n: state.events.length }),
     ];
     if (extra) head.push(...extra);
     const synth = Object.entries(byCat).map(
-      ([c, s]) => `  ${c.padEnd(10)} ${String(s.n).padStart(5)} × · total ${fmt(s.ms).padStart(9)} · max ${fmt(s.max)} (${s.maxMsg})`
+      ([c, s]) => `  ${tr(`cat.${c}`).padEnd(10)} ${String(s.n).padStart(5)} × · total ${fmt(s.ms).padStart(9)} · max ${fmt(s.max)} (${s.maxMsg})`
     );
-    return [...head, "", "Synthèse (étapes chronométrées) :", ...synth, "", "Journal :", ...state.events.map(line)].join("\n");
+    return [...head, "", tr("report.synth"), ...synth, "", tr("report.log"), ...state.events.map(line)].join("\n");
   }
 
   const api = {

@@ -7,6 +7,7 @@
 // de chaque section CDATA ; utilisées pour situer chaque ligne du fichier (voir lines.js).
 
 (function (root) {
+  const L = typeof module !== "undefined" && module.exports ? require("./i18n.js") : root.TcPr;
   const ENTITIES = { lt: "<", gt: ">", amp: "&", quot: '"', apos: "'" };
 
   function decodeEntities(s) {
@@ -32,11 +33,11 @@
     let i = 0;
 
     const fail = (msg) => {
-      throw new Error(`XML invalide (${msg}) vers le caractère ${i}`);
+      throw new Error(L.t("xml.invalid", { msg, i }));
     };
     const indexOrFail = (needle, from, what) => {
       const k = src.indexOf(needle, from);
-      if (k < 0) fail(`${what} non fermé`);
+      if (k < 0) fail(L.t("xml.unclosed", { what }));
       return k;
     };
 
@@ -50,20 +51,20 @@
       if (lt > i) top.text += decodeEntities(src.slice(i, lt));
 
       if (src.startsWith("<![CDATA[", lt)) {
-        const end = indexOrFail("]]>", lt + 9, "CDATA");
+        const end = indexOrFail("]]>", lt + 9, L.t("xml.cdata"));
         top.text += src.slice(lt + 9, end);
         (top.cdata || (top.cdata = [])).push({ start: lt + 9, end });
         i = end + 3;
       } else if (src.startsWith("<!--", lt)) {
-        i = indexOrFail("-->", lt + 4, "commentaire") + 3;
+        i = indexOrFail("-->", lt + 4, L.t("xml.comment")) + 3;
       } else if (src.startsWith("<?", lt)) {
-        i = indexOrFail("?>", lt + 2, "instruction") + 2;
+        i = indexOrFail("?>", lt + 2, L.t("xml.pi")) + 2;
       } else if (src.startsWith("<!", lt)) {
-        i = indexOrFail(">", lt + 2, "déclaration") + 1;
+        i = indexOrFail(">", lt + 2, L.t("xml.decl")) + 1;
       } else if (src[lt + 1] === "/") {
-        const end = indexOrFail(">", lt + 2, "balise fermante");
+        const end = indexOrFail(">", lt + 2, L.t("xml.closeTag"));
         const name = src.slice(lt + 2, end).trim();
-        if (stack.length < 2 || top.tag !== name) fail(`</${name}> inattendu`);
+        if (stack.length < 2 || top.tag !== name) fail(L.t("xml.unexpected", { name }));
         top.end = end + 1;
         stack.pop();
         i = end + 1;
@@ -72,11 +73,11 @@
         let j = lt + 1;
         while (j < n && !isSpace(src[j]) && src[j] !== "/" && src[j] !== ">") j++;
         const el = { tag: src.slice(lt + 1, j), attrs: {}, attrOrder: [], children: [], text: "", start: lt, end: -1 };
-        if (!el.tag) fail("nom de balise vide");
+        if (!el.tag) fail(L.t("xml.emptyName"));
         let selfClosing = false;
         for (;;) {
           while (j < n && isSpace(src[j])) j++;
-          if (j >= n) fail("balise ouvrante non fermée");
+          if (j >= n) fail(L.t("xml.unclosed", { what: L.t("xml.openTag") }));
           if (src[j] === ">") {
             j++;
             break;
@@ -90,13 +91,13 @@
           while (j < n && !isSpace(src[j]) && src[j] !== "=" && src[j] !== ">" && src[j] !== "/") j++;
           const aname = src.slice(ns, j);
           while (j < n && isSpace(src[j])) j++;
-          if (src[j] !== "=") fail(`attribut ${aname} sans valeur`);
+          if (src[j] !== "=") fail(L.t("xml.attrNoValue", { a: aname }));
           j++;
           while (j < n && isSpace(src[j])) j++;
           const q = src[j];
-          if (q !== '"' && q !== "'") fail(`attribut ${aname} sans guillemets`);
+          if (q !== '"' && q !== "'") fail(L.t("xml.attrNoQuote", { a: aname }));
           const vend = src.indexOf(q, j + 1);
-          if (vend < 0) fail(`valeur de ${aname} non fermée`);
+          if (vend < 0) fail(L.t("xml.valueUnclosed", { a: aname }));
           el.attrs[aname] = decodeEntities(src.slice(j + 1, vend));
           el.attrOrder.push(aname);
           j = vend + 1;
@@ -107,9 +108,9 @@
         i = j;
       }
     }
-    if (stack.length !== 1) fail(`<${stack[stack.length - 1].tag}> non fermé`);
+    if (stack.length !== 1) fail(L.t("xml.unclosed", { what: `<${stack[stack.length - 1].tag}>` }));
     const rootEl = doc.children[0];
-    if (!rootEl) fail("aucun élément racine");
+    if (!rootEl) fail(L.t("xml.noRoot"));
     return rootEl;
   }
 

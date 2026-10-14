@@ -8,6 +8,7 @@
 
 (function (root) {
   const X = typeof module !== "undefined" && module.exports ? require("./xml.js") : root.TcPr;
+  const L = typeof module !== "undefined" && module.exports ? require("./i18n.js") : root.TcPr;
 
   const GUID_RE = /^\{?[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\}?$/;
   const VERSION_ATTRS = new Set(["ProductVersion", "TcVersion"]);
@@ -46,14 +47,10 @@
 
   // ---------- Objets PLC (TcPOU, TcDUT, TcGVL, TcIO, TcTTO, ...) ----------
 
-  const CHILD_LABELS = {
-    Method: "Méthode",
-    Action: "Action",
-    Transition: "Transition",
-    Property: "Propriété",
-  };
-
-  const OBJECT_LABELS = { POU: "POU", DUT: "DUT", GVL: "GVL", Itf: "Interface", Task: "Tâche" };
+  // Libellés traduits à l'appel (la langue peut changer entre deux analyses).
+  const CHILD_KEYS = { Method: "label.method", Action: "label.action", Transition: "label.transition", Property: "label.property" };
+  const childLabel = (tag) => (CHILD_KEYS[tag] ? L.t(CHILD_KEYS[tag]) : null);
+  const objectLabel = (tag) => ({ POU: "POU", DUT: "DUT", GVL: "GVL", Itf: L.t("label.interface"), Task: L.t("label.task") })[tag];
 
   function declHeadline(el) {
     const decl = X.child(el, "Declaration");
@@ -89,7 +86,7 @@
     // Langage graphique : pas de texte ST, on montre le XML réindenté plutôt que rien.
     return {
       key,
-      label: `${label} (${lang.tag}, non textuel)`,
+      label: L.t("sec.nonText", { label, lang: lang.tag }),
       kind: "code",
       lang: "xml",
       text: X.toXml(lang),
@@ -102,18 +99,18 @@
     const push = (sec) => out.push(Object.assign(sec, { tree }));
     const props = attrProps(el, new Set(["Name"]), noise);
     if (Object.keys(props).length) {
-      push({ key: `${keyPrefix}#attrs`, label: `${labelPrefix} · attributs`, kind: "props", props, part: "attrs" });
+      push({ key: `${keyPrefix}#attrs`, label: `${labelPrefix} · ${L.t("sec.attrs")}`, kind: "props", props, part: "attrs" });
     }
     for (const c of el.children) {
       if (c.tag === "Declaration") {
-        push({ key: `${keyPrefix}#decl`, label: `${labelPrefix} · déclaration`, kind: "code", lang: "st", text: cleanCode(c.text), part: "decl" });
+        push({ key: `${keyPrefix}#decl`, label: `${labelPrefix} · ${L.t("sec.decl")}`, kind: "code", lang: "st", text: cleanCode(c.text), part: "decl" });
       } else if (c.tag === "Implementation") {
-        push(Object.assign(implementationSection(c, `${keyPrefix}#impl`, `${labelPrefix} · implémentation`), { part: "impl" }));
-      } else if (CHILD_LABELS[c.tag]) {
+        push(Object.assign(implementationSection(c, `${keyPrefix}#impl`, `${labelPrefix} · ${L.t("sec.impl")}`), { part: "impl" }));
+      } else if (childLabel(c.tag)) {
         const name = c.attrs.Name || "?";
         const folder = c.attrs.FolderPath ? `${c.attrs.FolderPath.replace(/\\$/, "")}\\` : "";
         const key = `${keyPrefix}/${c.tag}:${name}`;
-        const label = `${CHILD_LABELS[c.tag]} ${folder}${name}`;
+        const label = `${childLabel(c.tag)} ${folder}${name}`;
         plcObjectSections(c, key, label, noise, out, tree.concat({ key, kind: c.tag, label }));
       } else if (c.tag === "Get" || c.tag === "Set") {
         const key = `${keyPrefix}/${c.tag}`;
@@ -134,14 +131,14 @@
     let title = "";
     for (const obj of rootEl.children) {
       const name = obj.attrs.Name || obj.tag;
-      const kindWord = obj.tag === "POU" ? declHeadline(obj) || "POU" : OBJECT_LABELS[obj.tag] || obj.tag;
+      const kindWord = obj.tag === "POU" ? declHeadline(obj) || "POU" : objectLabel(obj.tag) || obj.tag;
       if (!title) title = `${kindWord} ${name}`;
       if (obj.tag === "Task") {
         // Tâche (.TcTTO) : tout en propriétés, les GUID internes partent dans le bruit.
         const props = {};
         flatten(obj, "", props, noise, ["Name"]);
         const key = `${obj.tag}:${name}`;
-        sections.push({ key, label: `Tâche ${name}`, kind: "props", props, part: "props", tree: [{ key, kind: "Task", label: `Tâche ${name}` }] });
+        sections.push({ key, label: `${L.t("label.task")} ${name}`, kind: "props", props, part: "props", tree: [{ key, kind: "Task", label: `${L.t("label.task")} ${name}` }] });
       } else {
         const key = `${obj.tag}:${name}`;
         const label = kindWord === name ? name : `${kindWord} ${name}`;
@@ -208,21 +205,21 @@
   }
 
   const PLCPROJ_GROUPS = [
-    [/^(Compile|None|Content|EmbeddedResource)\[/, "Fichiers"],
-    [/^Folder\[/, "Dossiers"],
-    [/^(PlaceholderReference|PlaceholderResolution|LibraryReference|SupportFiles)\[/, "Bibliothèques"],
-    [/^ProjectExtensions/, "Extensions"],
+    [/^(Compile|None|Content|EmbeddedResource)\[/, "group.files"],
+    [/^Folder\[/, "group.folders"],
+    [/^(PlaceholderReference|PlaceholderResolution|LibraryReference|SupportFiles)\[/, "group.libs"],
+    [/^ProjectExtensions/, "group.ext"],
   ];
 
   function groupPlcproj(key) {
-    for (const [re, label] of PLCPROJ_GROUPS) if (re.test(key)) return label;
-    return "Propriétés du projet";
+    for (const [re, label] of PLCPROJ_GROUPS) if (re.test(key)) return L.t(label);
+    return L.t("group.props");
   }
 
   // tsproj/xti : une section par élément de niveau 3 (ex. Project/Io/Device[EtherCAT Master]).
   function groupTsproj(key) {
     const segs = key.split("@")[0].split("/");
-    return segs.slice(0, 3).join(" › ") || "(racine)";
+    return segs.slice(0, 3).join(" › ") || L.t("group.root");
   }
 
   function modelGeneric(rootEl, noise, groupFn) {

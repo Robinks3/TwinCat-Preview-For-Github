@@ -1,43 +1,47 @@
 # TcReview for GitHub
 
-Extension Chrome / Edge (Manifest V3) qui rend lisibles les fichiers **TwinCAT 3** d'une pull request GitHub : le code ST sans le XML, organisé comme dans TwinCAT, avec les commentaires de revue qui continuent de fonctionner.
+**English** · [Français](README.fr.md)
 
-> Projet non officiel, sans lien avec Beckhoff Automation. TwinCAT est une marque de Beckhoff Automation GmbH.
+Chrome / Edge extension (Manifest V3) that makes **TwinCAT 3** files readable in GitHub pull requests: ST code without the XML, organized like in TwinCAT, with review comments that keep working.
 
-## Fonctionnalités
+> Unofficial project, not affiliated with Beckhoff Automation. TwinCAT is a trademark of Beckhoff Automation GmbH.
 
-Une barre en bas à droite de chaque PR : **[TwinCAT : intégré] [Panneau] [🐞]**.
+## Features
 
-**Mise en forme intégrée au diff GitHub** (onglet « Files changed »)
-- échafaudage XML et bruit (`LineIds`, GUID, version XAE) masqués ;
-- ST sans `<![CDATA[`, coloré ;
-- bandeau au début de chaque section (« Méthode Reset · déclaration »), liseré bleu pour la déclaration, vert pour le code ;
-- les lignes restent celles de GitHub : commentaires, bouton « + » et numéros de ligne intacts.
+A toolbar at the bottom right of every PR: **[TwinCAT: inline] [Panel] [🐞]**.
 
-**Panneau d'ensemble** (`Alt+T`)
-- arborescence TwinCAT : POU > méthodes / propriétés > Get / Set, déclaration et code séparés ;
-- vue côte à côte avant | après, option « Ignorer les espaces » ;
-- `.TcTTO`, `.plcproj`, `.tsproj`, `.xti` en tableaux de propriétés avant / après ;
-- navigation dossiers > fichiers > membres.
+**Inline formatting in the GitHub diff** ("Files changed" tab)
+- XML scaffolding and noise (`LineIds`, GUIDs, XAE version) hidden;
+- ST without `<![CDATA[`, syntax highlighted;
+- a banner at the start of each section ("Method Reset · declaration"), blue edge for declarations, green for code;
+- the rows are still GitHub's own: comments, the "+" button and line numbers are untouched.
 
-**Grosses PR** : tout est chargé à la demande et une seule fois, le panneau est virtualisé comme la vue de GitHub. Le coût ne dépend que de ce qui est à l'écran (test de charge : 300 fichiers de 2 000 lignes sans gel).
+**Overview panel** (`Alt+T`)
+- TwinCAT tree: POU > methods / properties > Get / Set, declaration and code kept apart;
+- side-by-side before | after view, "Ignore whitespace" option;
+- `.TcTTO`, `.plcproj`, `.tsproj`, `.xti` as before / after property tables;
+- navigation by folder > file > member.
 
-**Mode debug** (🐞) : journal des temps de chargement et rapport copiable pour diagnostiquer une lenteur.
+**Large PRs**: everything is loaded on demand and only once, and the panel is virtualized like GitHub's own view. The cost depends only on what is on screen (load test: 300 files of 2,000 lines, no freeze).
 
-Aucun token, aucun serveur : l'extension réutilise la session GitHub du navigateur, y compris pour les dépôts privés. Détails dans [PRIVACY.md](PRIVACY.md).
+**Debug mode** (🐞): log of loading times and a copyable report to diagnose slowness.
+
+The interface is in English or French, following the browser language.
+
+No token, no server: the extension reuses the browser's GitHub session, private repositories included. Details in [PRIVACY.md](PRIVACY.md).
 
 ## Installation
 
-1. Cloner le dépôt ou télécharger l'archive ZIP et la décompresser.
-2. Ouvrir `chrome://extensions` (ou `edge://extensions`), activer le **mode développeur**.
-3. **Charger l'extension non empaquetée** et choisir le dossier qui contient `manifest.json`.
-4. Recharger les onglets GitHub déjà ouverts, puis ouvrir une PR.
+1. Clone the repository, or download the ZIP archive and extract it.
+2. Open `chrome://extensions` (or `edge://extensions`) and enable **Developer mode**.
+3. Click **Load unpacked** and select the folder that contains `manifest.json`.
+4. Reload GitHub tabs that were already open, then open a PR.
 
 ## Documentation
 
-- [Guide d'utilisation](docs/GUIDE.md) : modes, réglages, mode debug, dépannage.
-- [Architecture](docs/ARCHITECTURE.md) : modules, récupération des données, coexistence avec le rendu de GitHub, tests.
-- [Confidentialité](PRIVACY.md) : ce que l'extension lit, stocke et n'envoie pas.
+- [User guide](docs/GUIDE.md): modes, settings, debug mode, troubleshooting.
+- [Architecture](docs/ARCHITECTURE.md): modules, data retrieval, coexistence with GitHub's rendering, tests.
+- [Privacy](PRIVACY.md): what the extension reads, stores, and never sends.
 
 ## Tests
 
@@ -49,16 +53,16 @@ node test/run.js
 node test/harness/serve.mjs
 ```
 
-puis http://localhost:8787/test/harness/ (panneau), `/test/harness/inline.html` (mise en forme intégrée) et `/test/harness/stress.html` (test de charge).
+then http://localhost:8787/test/harness/ (panel), `/test/harness/inline.html` (inline formatting) and `/test/harness/stress.html` (load test).
 
-## Crédits et licence
+## Credits and license
 
-Inspiré de TcCompare (Beckhoff) et de [TcPreview](https://github.com/dfreiberger/tc-preview-extension) (aperçu TwinCAT pour Azure DevOps). Les fichiers de test de `test/fixtures` viennent de [TcBlack](https://github.com/Roald87/TcBlack), sous licence MIT (voir [test/fixtures/LICENSE-TcBlack](test/fixtures/LICENSE-TcBlack)).
+Inspired by TcCompare (Beckhoff) and [TcPreview](https://github.com/dfreiberger/tc-preview-extension) (TwinCAT preview for Azure DevOps). The test files in `test/fixtures` come from [TcBlack](https://github.com/Roald87/TcBlack), under the MIT license (see [test/fixtures/LICENSE-TcBlack](test/fixtures/LICENSE-TcBlack)).
 
-Licence du projet : non définie pour l'instant (tous droits réservés).
+Project license: not defined yet (all rights reserved).
 
-## Limites connues
+## Known limitations
 
-- Mise en forme intégrée : nouvelle vue « Files changed » de GitHub uniquement, objets PLC uniquement.
-- `.tsproj` : vue générique en propriétés, sans présentation dédiée des liens I/O ou de la topologie EtherCAT.
-- github.com uniquement (pas GitHub Enterprise Server).
+- Inline formatting: GitHub's new "Files changed" view only, PLC objects only.
+- `.tsproj`: generic property view, no dedicated presentation of I/O links or EtherCAT topology.
+- github.com only (no GitHub Enterprise Server).

@@ -7,6 +7,8 @@
 //   4. Contenu avant = contenu après avec les hunks appliqués à l'envers, contrôle à chaque ligne.
 
 (function (root) {
+  const L = typeof module !== "undefined" && module.exports ? require("./i18n.js") : root.TcPr;
+
   // ---------- Diff unifié ----------
 
   // Découpe un texte en lignes en gardant leur terminaison, pour une reconstruction octet pour octet.
@@ -129,7 +131,7 @@
     let pos = 0;
     for (const h of hunks) {
       const start = h.newCount === 0 ? h.newStart : h.newStart - 1;
-      if (start < pos || start > head.length) throw new Error(`hunk @@ +${h.newStart} hors du fichier`);
+      if (start < pos || start > head.length) throw new Error(L.t("err.hunkOut", { n: h.newStart }));
       while (pos < start) out.push(head[pos++]);
       for (const l of h.lines) {
         if (l.t === "-") {
@@ -137,7 +139,7 @@
           continue;
         }
         if (head[pos] !== l.text) {
-          throw new Error(`le diff ne correspond pas au fichier (ligne ${pos + 1})`);
+          throw new Error(L.t("err.mismatch", { n: pos + 1 }));
         }
         if (l.t === " ") out.push(head[pos]);
         pos++;
@@ -178,7 +180,11 @@
       if (api.fetchImpl) text = await api.fetchImpl(url, keepBom);
       else {
         const res = await chrome.runtime.sendMessage({ type: "tcpr-fetch", url, keepBom: !!keepBom });
-        if (!res || !res.ok) throw new Error(`${res && res.status ? res.status : res && res.error ? res.error : "échec"} sur ${url}`);
+        if (!res || !res.ok) {
+          // Codes d'erreur du service worker traduits ici (il ne charge pas les textes).
+          const err = res && res.error ? ({ timeout: L.t("err.timeout"), refused: L.t("err.refused") })[res.error] || res.error : null;
+          throw new Error(L.t("err.on", { what: res && res.status ? res.status : err || L.t("err.failed"), url }));
+        }
         text = res.text;
       }
     } catch (e) {
@@ -196,7 +202,7 @@
   async function headShaFromPatch(pr) {
     const patch = await fetchText(`/${pr.owner}/${pr.repo}/pull/${pr.number}.patch`);
     const all = [...patch.matchAll(/^From ([0-9a-f]{40}) /gm)];
-    if (!all.length) throw new Error("SHA du dernier commit introuvable dans le .patch");
+    if (!all.length) throw new Error(L.t("err.noSha"));
     return all[all.length - 1][1];
   }
 
@@ -210,7 +216,7 @@
   async function loadEntry(pr, f, rawBase) {
     const entry = { path: f.newPath || f.oldPath, oldPath: f.oldPath, status: f.status, base: null, head: null, error: null };
     try {
-      if (f.binary) throw new Error("fichier traité comme binaire par GitHub");
+      if (f.binary) throw new Error(L.t("err.binary"));
       if (f.status === "removed") entry.base = textFromHunks(f.hunks, "-");
       else if (f.status === "added") entry.head = textFromHunks(f.hunks, "+");
       else {
@@ -255,9 +261,9 @@
     const progress = opts.onProgress || (() => {});
     const now = () => (typeof performance !== "undefined" ? performance.now() : Date.now());
     const t0 = now();
-    progress("Récupération du diff de la PR…");
+    progress(L.t("progress.diff"));
     const diffText = await fetchText(`/${pr.owner}/${pr.repo}/pull/${pr.number}.diff`, true);
-    const endParse = dbg().time("analyse", "lecture du .diff");
+    const endParse = dbg().time("analyse", L.t("log.parseDiff"));
     const allFiles = parseUnifiedDiff(diffText);
     const files = allFiles.filter((f) => isWanted(f.newPath || f.oldPath));
     endParse({ fichiers: allFiles.length, twincat: files.length, modifiés: files.filter(needsFetch).length });
@@ -285,9 +291,9 @@
       if (!shaPromise) {
         const firstFile = pickProbe();
         shaPromise = (async () => {
-          const end = dbg().time("sha", "résolution de la version après", {
-            indice_sha: opts.headShaHint ? "oui" : "non",
-            indice_branche: opts.headRefHint ? "oui" : "non",
+          const end = dbg().time("sha", L.t("log.resolve"), {
+            indice_sha: opts.headShaHint ? L.t("yes") : L.t("no"),
+            indice_branche: opts.headRefHint ? L.t("yes") : L.t("no"),
           });
           const candidates = [];
           if (opts.headShaHint) {
@@ -302,10 +308,10 @@
             if (!e.error) {
               stats.shaSource = c.source;
               stats.headSha = c.label;
-              end({ source: c.source });
+              end({ source: L.t(`sha.src.${c.source}`) });
               return { rawBase: c.rawBase, file: firstFile, entry: e };
             }
-            dbg().log("sha", `source « ${c.source} » refusée`, { erreur: e.error });
+            dbg().log("sha", L.t("log.sourceRefused", { s: L.t(`sha.src.${c.source}`) }), { erreur: e.error });
           }
           const sha = await headShaFromPatch(pr);
           stats.shaSource = ".patch";

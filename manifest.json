@@ -1,10 +1,11 @@
 {
   "manifest_version": 3,
-  "name": "TcReview for GitHub",
-  "version": "0.1.26",
-  "description": "Vue structurée des fichiers TwinCAT 3 dans les pull requests GitHub : ST par méthode et propriété, configuration en propriétés, bruit XML retiré.",
+  "name": "__MSG_extName__",
+  "version": "0.1.27",
+  "description": "__MSG_extDescription__",
+  "default_locale": "en",
   "action": {
-    "default_title": "Mise en forme TwinCAT dans le diff : activer / couper"
+    "default_title": "__MSG_actionTitle__"
   },
   "background": {
     "service_worker": "src/background.js"
@@ -21,6 +22,7 @@
       ],
       "js": [
         "src/version.js",
+        "src/i18n.js",
         "src/debug.js",
         "src/xml.js",
         "src/model.js",

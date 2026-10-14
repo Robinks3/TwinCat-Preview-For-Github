@@ -1,60 +1,67 @@
 # Architecture
 
-Extension Chrome Manifest V3 en JavaScript pur, sans dépendance ni étape de build : le dossier se charge tel quel. Chaque module `src/*.js` s'exporte par `module.exports` (tests Node) ou sur `globalThis.TcPr` (navigateur).
+**English** · [Français](ARCHITECTURE.fr.md)
 
-## Vue d'ensemble
+Chrome Manifest V3 extension in plain JavaScript, with no dependency and no build step: the folder loads as is. Each `src/*.js` module exports through `module.exports` (Node tests) or onto `globalThis.TcPr` (browser).
+
+## Overview
 
 ```
-github.com (page de PR)
-  content.js ── barre d'outils, raccourcis, suivi de la navigation sans rechargement
+github.com (PR page)
+  content.js ── toolbar, shortcuts, follows navigation without reload
      │
-     ├── inline.js ── mise en forme dans le diff GitHub (lignes de GitHub conservées)
-     │      └── lines.js ── rôle de chaque ligne d'un fichier (code, échafaudage, bruit, config)
+     ├── inline.js ── formatting inside GitHub's diff (GitHub's rows are kept)
+     │      └── lines.js ── role of each line of a file (code, scaffolding, noise, config)
      │
-     ├── ui.js ── panneau virtualisé (arborescence, côte à côte, propriétés)
-     │      ├── model.js ── fichier TwinCAT → sections comparables
-     │      └── diff.js ── diff de Myers, diff par section et par propriété
+     ├── ui.js ── virtualized panel (tree, side by side, properties)
+     │      ├── model.js ── TwinCAT file → comparable sections
+     │      └── diff.js ── Myers diff, per-section and per-property diff
      │
-     └── github.js ── chargeur de PR à la demande ──► background.js (service worker) ──► github.com
-            xml.js ── parseur XML minimal avec positions (commun à tous)
-            debug.js ── journal, chronomètres, rapport
+     └── github.js ── on-demand PR loader ──► background.js (service worker) ──► github.com
+            xml.js ── minimal XML parser with positions (shared)
+            debug.js ── log, timers, report
+            i18n.js ── English / French texts following the browser language
 ```
 
-## Récupération des données
+## Data retrieval
 
-Aucun token : les requêtes partent du service worker avec la session GitHub du navigateur. `background.js` n'accepte que trois formes d'URL de github.com : `/pull/N.diff`, `/pull/N.patch` et `/raw/<sha ou refs/heads/branche>/<chemin>`. Délai maximal de 60 s par requête.
+No token: requests leave from the service worker with the browser's GitHub session. `background.js` only accepts three kinds of github.com URLs: `/pull/N.diff`, `/pull/N.patch` and `/raw/<sha or refs/heads/branch>/<path>`. 60 s timeout per request.
 
-Le chargeur (`createPrLoader`) :
+The loader (`createPrLoader`):
 
-1. télécharge `/pull/N.diff` une fois par page : liste des fichiers TwinCAT et hunks contre la merge-base. Un fichier ajouté ou supprimé y est complet ;
-2. pour un fichier modifié, télécharge seulement à la demande la version après (`/raw/...`) puis reconstruit la version avant en appliquant les hunks à l'envers, avec contrôle à chaque ligne ;
-3. détermine la version après en essayant, dans l'ordre, le SHA présent dans la page, la branche de tête affichée dans la page, puis le SHA du `.patch` (lourd). Chaque source est vérifiée sur un petit objet PLC témoin ; une source périmée échoue au contrôle et passe à la suivante ;
-4. mémorise chaque fichier : jamais deux téléchargements du même fichier dans une page.
+1. downloads `/pull/N.diff` once per page: list of TwinCAT files and hunks against the merge base. An added or removed file is complete in it;
+2. for a modified file, downloads the head version (`/raw/...`) only on demand, then rebuilds the base version by applying the hunks in reverse, with a check on every line;
+3. finds the head version by trying, in order, the SHA found in the page, the head branch shown in the page, then the SHA from the `.patch` (heavy). Each source is checked on a small PLC object used as a probe; a stale source fails the check and the next one is tried;
+4. memoizes each file: the same file is never downloaded twice in a page.
 
-## Mise en forme intégrée (`inline.js`)
+## Inline formatting (`inline.js`)
 
-GitHub dessine le diff en React. Pour coexister :
+GitHub renders the diff with React. To coexist:
 
-- aucune ligne n'est créée ni supprimée ; seuls des attributs `data-tcr-*` (masquage, partie, état) et des éléments de classe `tcr-*` (texte ST coloré, bandeau) sont ajoutés ;
-- un `MutationObserver` réapplique la mise en forme quand GitHub redessine ; nos propres insertions sont ignorées ;
-- chaque cellule de code donne ses numéros de ligne avant / après (`data-diff-line-key="b:…-l:…-r:…"`), ce qui permet d'appliquer le classement exact de `lines.js` calculé sur le fichier complet ;
-- seules les tables proches de l'écran sont traitées, par tranches de 12 ms, au plus une passe toutes les 400 ms par table.
+- no row is created or removed; only `data-tcr-*` attributes (hidden, part, state) and `tcr-*` class elements (highlighted ST text, banner) are added;
+- a `MutationObserver` reapplies the formatting when GitHub re-renders; our own insertions are ignored;
+- each code cell gives its base / head line numbers (`data-diff-line-key="b:…-l:…-r:…"`), which lets the exact `lines.js` classification computed on the full file be applied;
+- only tables close to the screen are processed, in 12 ms slices, at most one pass every 400 ms per table.
 
-## Panneau (`ui.js`)
+## Panel (`ui.js`)
 
-- `model.js` découpe un fichier en sections avec leur place dans l'arborescence (`tree`) et leur rôle (`part` : déclaration, implémentation, attributs, propriétés) ; le bruit (LineIds, GUID, versions) est extrait à part pour signaler « bruit XML seulement ».
-- `diff.js` compare les sections clé par clé (méthode, propriété, Get/Set...), en diff de lignes de Myers pour le code et en diff clé / valeur pour la configuration.
-- Virtualisation : une carte est montée à 1 500 px de l'écran et démontée au-delà de 5 000 px (hystérésis), `content-visibility: auto`, cache d'analyses borné à 40 Mo de sources, budget de 800 lignes affichées d'office par fichier.
-- Tout contenu issu d'une PR est inséré par `textContent`, jamais par `innerHTML`.
+- `model.js` splits a file into sections with their place in the tree (`tree`) and their role (`part`: declaration, implementation, attributes, properties); noise (LineIds, GUIDs, versions) is extracted separately to report "XML noise only".
+- `diff.js` compares sections key by key (method, property, Get/Set...), with a Myers line diff for code and a key / value diff for configuration.
+- Virtualization: a card is mounted 1,500 px from the screen and unmounted beyond 5,000 px (hysteresis), `content-visibility: auto`, analysis cache bounded to 40 MB of sources, budget of 800 lines rendered up front per file.
+- Any content coming from a PR is inserted with `textContent`, never `innerHTML`.
+
+## Languages
+
+Every visible text goes through `src/i18n.js` (`t(key, params)`, `tn(key, n)` for plurals), which holds the French and English dictionaries. The language is the browser UI language (`chrome.i18n.getUILanguage()`), can be forced with `localStorage["tcpr-lang"]`. The extension name and description live in `_locales/`. A test checks that every key exists in both languages.
 
 ## Tests
 
-- `node test/run.js` : parseur, modèle, diff (dont 2 000 cas aléatoires comparés à une LCS de référence), reconstruction depuis de vrais diffs git (LF, CRLF, BOM, sans saut de ligne final), chargeur à la demande.
-- `node test/harness/serve.mjs` puis :
-  - `/test/harness/` : panneau sur une PR de démo ;
-  - `/test/harness/inline.html` : mise en forme intégrée sur une imitation de la vue GitHub ;
-  - `/test/harness/stress.html?files=300&lines=2000&step=3` : test de charge.
+- `node test/run.js`: parser, model, diff (including 2,000 random cases compared against a reference LCS), reconstruction from real git diffs (LF, CRLF, BOM, no final newline), on-demand loader, English texts.
+- `node test/harness/serve.mjs`, then:
+  - `/test/harness/`: panel on a demo PR;
+  - `/test/harness/inline.html`: inline formatting on an imitation of GitHub's view;
+  - `/test/harness/stress.html?files=300&lines=2000&step=3`: load test.
 
 ## Versioning
 
-Une version = une ligne : à chaque modification, incrémenter `SCRIPT_VERSION` dans `src/version.js` et `version` dans `manifest.json`, et ajouter une ligne au changelog en tête de `src/version.js`. Le numéro s'affiche en bas du panneau et dans les rapports de debug.
+One version = one line: on every change, bump `SCRIPT_VERSION` in `src/version.js` and `version` in `manifest.json`, and add one line to the changelog at the top of `src/version.js`. The number is shown at the bottom of the panel and in debug reports.

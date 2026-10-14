@@ -5,6 +5,8 @@ Extension Chrome MV3 en JavaScript pur, sans étape de build : le dossier se cha
 - Tests : `node test/run.js` (cœur) et `node test/harness/serve.mjs` puis http://localhost:8787/test/harness/ (rendu).
 - Les modules `src/*.js` s'exportent via `module.exports` (Node) ou `globalThis.TcPr` (navigateur). Garder ce double export.
 - Tout contenu venant d'une PR s'insère avec `textContent`, jamais `innerHTML`.
+- Tout texte visible passe par `src/i18n.js` (`T.t`, `T.tn`) avec une entrée française ET anglaise ; le test i18n de `test/run.js` vérifie que les deux dictionnaires ont les mêmes clés. Documentation : anglais en `*.md`, français en `*.fr.md`, à tenir à jour ensemble.
+- Tests de l'extension sur des PR publiques uniquement, jamais sur une PR privée.
 
 ## Versioning : « une version = une ligne »
 

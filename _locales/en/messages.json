@@ -1,0 +1,11 @@
+{
+  "extName": {
+    "message": "TcReview for GitHub"
+  },
+  "extDescription": {
+    "message": "Readable TwinCAT 3 pull requests on GitHub: ST code without the XML, TwinCAT tree, configuration as properties, review comments kept."
+  },
+  "actionTitle": {
+    "message": "TwinCAT formatting in the diff: on / off"
+  }
+}

@@ -28,9 +28,10 @@
 //   0.1.24 - ui.js/styles.css : panneau pleine largeur, marges et retraits réduits, arborescence repliable (bouton « Arbre », mémorisé).
 //   0.1.25 - ui.js renderCodeSplit : vue côte à côte avant | après des sections modifiées, lignes appariées, activée par défaut et mémorisée.
 //   0.1.26 - manifest.json/version.js/ui.js : extension renommée « TcReview for GitHub » (nom du dépôt public), documentation et page de confidentialité.
+//   0.1.27 - i18n.js + tous les modules + _locales : interface en français ou en anglais selon la langue du navigateur (nom, panneau, vue intégrée, debug, erreurs).
 
 (function (root) {
-  const SCRIPT_VERSION = "0.1.26";
+  const SCRIPT_VERSION = "0.1.27";
   const SCRIPT_DATE = "2026-10-14";
 
   const api = { SCRIPT_VERSION, SCRIPT_DATE };

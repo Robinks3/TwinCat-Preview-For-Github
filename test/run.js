@@ -12,6 +12,9 @@ const M = require("../src/model.js");
 const D = require("../src/diff.js");
 const G = require("../src/github.js");
 const L = require("../src/lines.js");
+const I = require("../src/i18n.js");
+// Les tests vérifient des libellés français ; un test dédié vérifie l'anglais.
+I.i18n.setLang("fr");
 
 const FIX = path.join(__dirname, "fixtures");
 // Fixtures lues en LF sans BOM ; CRLF et BOM sont testés à part (aller-retour reverseApply).
@@ -289,6 +292,34 @@ test("lignes : ST sans enveloppe, échafaudage, bruit LineIds et GUID", () => {
     L.noiseKey('<POU Name="A" Id="{16c60171-46ae-4c0f-982d-d26906c8a65a}">'),
     L.noiseKey('<POU Name="A" Id="{00000000-46ae-4c0f-982d-d26906c8a65a}">')
   );
+});
+
+test("i18n : libellés, bruit, erreurs et pluriels en anglais", () => {
+  I.i18n.setLang("en");
+  try {
+    const m = M.modelFile("FB_Child.TcPOU", read("FB_InputWithPropertiesAndMethods.TcPOU"));
+    assert.strictEqual(m.sections.find((s) => s.key === "POU:FB_Child/Method:AddTwoInts#decl").label, "Method AddTwoInts · declaration");
+    assert.strictEqual(m.sections.find((s) => s.key === "POU:FB_Child/Property:Counter/Get#impl").label, "Property Counter · Get · implementation");
+    const p = M.modelFile("PLC3.plcproj", read("PLC3.plcproj"));
+    assert.ok(p.sections.some((s) => s.label === "Libraries") && p.sections.some((s) => s.label === "Project properties"));
+    const src = read("FB_InputWithPropertiesAndMethods.TcPOU");
+    const d = D.diffModels(M.modelFile("a.TcPOU", src), M.modelFile("a.TcPOU", src.replace('ProductVersion="3.1.4024.3"', 'ProductVersion="3.1.4026.12"')));
+    assert.deepStrictEqual(d.noise, ["XAE version (ProductVersion=3.1.4024.3 → ProductVersion=3.1.4026.12)"]);
+    const r = L.classifyLines("a.TcPOU", src);
+    assert.strictEqual(r.lines[37].label, "Method AddTwoInts · implementation");
+    assert.throws(() => X.parseXml("<a><b></a>"), /Invalid XML/);
+    assert.strictEqual(I.tn("status.files", 1), "1 TwinCAT file");
+    assert.strictEqual(I.tn("status.files", 0), "0 TwinCAT files");
+    I.i18n.setLang("fr");
+    assert.strictEqual(I.tn("status.files", 0), "0 fichier TwinCAT");
+    // Toutes les clés existent dans les deux langues.
+    const fr = Object.keys(I.i18n.dict.fr).sort();
+    const en = Object.keys(I.i18n.dict.en).sort();
+    assert.deepStrictEqual(fr.filter((k) => !en.includes(k)), []);
+    assert.deepStrictEqual(en.filter((k) => !fr.includes(k)), []);
+  } finally {
+    I.i18n.setLang("fr");
+  }
 });
 
 // Test asynchrone : le chargeur ne télécharge que ce qu'on lui demande, une seule fois.

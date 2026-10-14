@@ -1,71 +1,77 @@
-# Guide d'utilisation
+# User guide
+
+**English** · [Français](GUIDE.fr.md)
+
+## Language
+
+The interface is in French if the browser language is French, in English otherwise. To force a language, run in the console of a github.com page: `localStorage.setItem("tcpr-lang", "fr")` (or `"en"`), then reload.
 
 ## Installation
 
-1. Récupérer le dépôt (clone ou archive ZIP décompressée).
-2. Ouvrir `chrome://extensions` (Edge : `edge://extensions`) et activer le **mode développeur**.
-3. Cliquer sur **Charger l'extension non empaquetée** et choisir le dossier qui contient `manifest.json`.
-4. Recharger les onglets GitHub déjà ouverts : Chrome n'injecte pas une extension dans un onglet ouvert avant son installation.
+1. Get the repository (clone or extracted ZIP archive).
+2. Open `chrome://extensions` (Edge: `edge://extensions`) and enable **Developer mode**.
+3. Click **Load unpacked** and select the folder that contains `manifest.json`.
+4. Reload GitHub tabs that were already open: Chrome does not inject an extension into tabs opened before it was installed.
 
-Mise à jour : remplacer les fichiers, cliquer sur ⟳ dans la carte de l'extension sur `chrome://extensions`, puis recharger l'onglet GitHub. Le numéro de version s'affiche en bas du panneau.
+Update: replace the files, click ⟳ on the extension card in `chrome://extensions`, then reload the GitHub tab. The version number is shown at the bottom of the panel.
 
-## La barre d'outils
+## The toolbar
 
-Sur une page de pull request, une barre apparaît en bas à droite :
+On a pull request page, a toolbar appears at the bottom right:
 
-| Bouton | Rôle |
+| Button | Purpose |
 |---|---|
-| **TwinCAT : intégré** | Met en forme les fichiers TwinCAT directement dans le diff de GitHub. Réglage mémorisé. L'icône de l'extension fait la même chose. |
-| **Panneau** | Ouvre la vue d'ensemble de la PR (`Alt+T`, `Alt+Maj+T` pour tout recharger). |
-| **🐞** | Mode debug (voir plus bas). |
+| **TwinCAT: inline** | Formats TwinCAT files directly in GitHub's diff. Setting remembered. The extension icon does the same. |
+| **Panel** | Opens the PR overview (`Alt+T`, `Alt+Shift+T` to reload everything). |
+| **🐞** | Debug mode (see below). |
 
-## Mise en forme intégrée
+## Inline formatting
 
-À utiliser dans l'onglet **Files changed** de la PR, pour relire et commenter.
+Use it in the PR's **Files changed** tab, to review and comment.
 
-- Les lignes de structure XML et le bruit (`LineIds`, GUID, version XAE) sont masqués.
-- Le code ST s'affiche sans `<![CDATA[` et coloré.
-- Chaque section commence par un bandeau : « Méthode Reset · déclaration », « Propriété Counter · Get · implémentation »... Liseré bleu pour une déclaration, vert pour du code.
-- Une ligne de structure qui porte une vraie information (par exemple un attribut `SpecialFunc` modifié) reste visible, grisée.
+- XML structure lines and noise (`LineIds`, GUIDs, XAE version) are hidden.
+- ST code is shown without `<![CDATA[`, highlighted.
+- Each section starts with a banner: "Method Reset · declaration", "Property Counter · Get · implementation"... Blue edge for a declaration, green for code.
+- A structure line that carries real information (for example a changed `SpecialFunc` attribute) stays visible, greyed out.
 
-Les lignes affichées sont celles de GitHub : le bouton « + », les commentaires, les suggestions et les numéros de ligne fonctionnent normalement. Un commentaire est accroché à la vraie ligne du fichier ; un relecteur sans l'extension le voit au même endroit dans le XML. Désactiver la mise en forme rend le diff d'origine.
+The displayed rows are GitHub's own: the "+" button, comments, suggestions and line numbers work as usual. A comment is attached to the real line of the file; a reviewer without the extension sees it at the same place in the XML. Turning the formatting off restores the original diff.
 
-Concerne les objets PLC : `.TcPOU`, `.TcDUT`, `.TcGVL`, `.TcIO`. Les fichiers de configuration (`.tsproj`, `.xti`, `.plcproj`, `.TcTTO`) restent en XML dans le diff ; le panneau les présente en propriétés.
+Applies to PLC objects: `.TcPOU`, `.TcDUT`, `.TcGVL`, `.TcIO`. Configuration files (`.tsproj`, `.xti`, `.plcproj`, `.TcTTO`) stay as XML in the diff; the panel shows them as properties.
 
-La mise en forme est d'abord approximative (d'après le texte affiché), puis exacte dès que le fichier complet est disponible : immédiat pour un fichier ajouté ou supprimé, un téléchargement unique pour un fichier modifié.
+Formatting is first approximate (based on the displayed text), then exact as soon as the full file is available: immediate for an added or removed file, a single download for a modified file.
 
-## Panneau d'ensemble
+## Overview panel
 
-À utiliser pour comprendre une PR d'un coup d'œil.
+Use it to understand a PR at a glance.
 
-- **Arborescence TwinCAT** : un bloc par objet (POU > méthodes / propriétés > Get / Set), avec une pastille par type (FB, PRG, M, P, G, S...) et la signature (`METHOD Reset : BOOL`). Déclaration et code séparés. Chaque bloc se replie.
-- **Navigation à gauche** : dossiers > fichiers > membres, pastille de couleur selon l'état (vert ajouté, rouge supprimé, orange modifié). Bouton **☰ Arbre** pour la masquer et donner toute la largeur au code.
-- **Côte à côte** : avant à gauche, après à droite (réglage mémorisé). Décocher pour revenir à une seule colonne.
-- **Ignorer les espaces** : utile après un passage de formateur (TcBlack), pour ne voir que les vrais changements.
-- **Montrer l'inchangé** : affiche aussi les sections et propriétés identiques.
-- **Configuration** (`.TcTTO`, `.plcproj`, `.tsproj`, `.xti`) : tableaux Propriété / Avant / Après. Les éléments sont identifiés par leur nom : réordonner des fichiers ou des bibliothèques ne produit pas de différence.
+- **TwinCAT tree**: one block per object (POU > methods / properties > Get / Set), with a badge per type (FB, PRG, M, P, G, S...) and the signature (`METHOD Reset : BOOL`). Declaration and code kept apart. Every block can be collapsed.
+- **Navigation on the left**: folders > files > members, colored dot by state (green added, red removed, orange modified). The **☰ Tree** button hides it to give the code the full width.
+- **Side by side**: before on the left, after on the right (setting remembered). Uncheck to go back to a single column.
+- **Ignore whitespace**: useful after running a formatter (TcBlack), to see only real changes.
+- **Show unchanged**: also shows identical sections and properties.
+- **Configuration** (`.TcTTO`, `.plcproj`, `.tsproj`, `.xti`): Property / Before / After tables. Items are identified by name: reordering files or libraries does not produce a difference.
 
-### Grosses PR
+### Large PRs
 
-- Un fichier n'est téléchargé et analysé que lorsqu'il approche de l'écran, une seule fois par page.
-- Les fichiers probablement volumineux (`.tsproj`, `.tmc`, diff énorme) attendent un clic sur **Télécharger et analyser** ; au-delà de 1,5 Mo, l'analyse aussi.
-- Au-delà de 800 lignes par fichier, les sections suivantes restent repliées : **Afficher (N lignes)**.
+- A file is downloaded and analyzed only when it gets close to the screen, once per page.
+- Probably large files (`.tsproj`, `.tmc`, huge diff) wait for a click on **Download and analyze**; above 1.5 MB, the analysis too.
+- Beyond 800 lines per file, the following sections stay folded: **Show (N lines)**.
 
-## Mode debug
+## Debug mode
 
-Le bouton **🐞** ouvre un journal en direct : requêtes (durée, taille), source de la version après (SHA de la page, branche ou `.patch`), analyse et rendu de chaque fichier, passes de mise en forme, tâches longues (page bloquée plus de 200 ms).
+The **🐞** button opens a live log: requests (duration, size), source of the head version (page SHA, branch or `.patch`), analysis and rendering of each file, formatting passes, long tasks (page blocked for more than 200 ms).
 
-- **Copier le rapport** : synthèse par étape (nombre, total, maximum) puis journal complet, à coller dans un ticket.
-- **Rapport précédent** : journal sauvegardé de la session précédente, utile si la page s'est figée et a dû être quittée.
-- **Désactiver** : arrête la collecte.
+- **Copy report**: summary per step (count, total, maximum) followed by the full log, ready to paste into a ticket.
+- **Previous report**: saved log of the previous session, useful when the page froze and had to be closed.
+- **Disable**: stops collecting.
 
-Le rapport contient le nom du dépôt et les chemins des fichiers, jamais leur contenu. Le relire avant de le partager hors de l'équipe.
+The report contains the repository name and file paths, never their content. Review it before sharing it outside your team.
 
-## Dépannage
+## Troubleshooting
 
-| Symptôme | Cause probable |
+| Symptom | Likely cause |
 |---|---|
-| Pas de barre en bas à droite | Onglet ouvert avant l'installation : le recharger. Ou page qui n'est pas une PR. |
-| Mise en forme intégrée sans effet | Ce n'est pas l'onglet « Files changed », ou la PR ne contient pas d'objet PLC. Le journal debug l'indique. |
-| « Échec du chargement » | Session GitHub expirée ou accès refusé au dépôt : se reconnecter à GitHub, recharger. |
-| Lenteur | Ouvrir le mode debug, reproduire, **Copier le rapport** : la synthèse montre l'étape en cause. |
+| No toolbar at the bottom right | Tab opened before installation: reload it. Or the page is not a PR. |
+| Inline formatting has no effect | Not the "Files changed" tab, or the PR contains no PLC object. The debug log says so. |
+| "Loading failed" | Expired GitHub session or no access to the repository: sign in to GitHub again, reload. |
+| Slowness | Open debug mode, reproduce, **Copy report**: the summary shows the step at fault. |
