@@ -37,12 +37,19 @@
     }
     const current = overlay;
     try {
-      const res = await T.loadPrFiles(pr, T.isTwinCatPath, (entry) => {
-        if (overlay === current) {
-          current.addEntry(entry);
-          current.setStatus("Chargement…");
+      const res = await T.loadPrFiles(
+        pr,
+        T.isTwinCatPath,
+        (entry) => {
+          if (overlay === current) current.addEntry(entry);
+        },
+        {
+          headShaHint: headShaFromPage(),
+          onProgress: (t) => {
+            if (overlay === current) current.setStatus(t);
+          },
         }
-      });
+      );
       cache.set(id, res);
       if (overlay !== current) return;
       if (!res.files.length) current.showMessage("Aucun fichier TwinCAT dans cette PR.");
@@ -50,6 +57,16 @@
     } catch (e) {
       if (overlay === current) current.showMessage(`Échec du chargement : ${e.message}`, true);
     }
+  }
+
+  // SHA de tête présent dans les données embarquées de la page de PR (« headOid »).
+  // Ignoré s'il est ambigu ; loadPrFiles le vérifie de toute façon avant de s'en servir.
+  function headShaFromPage() {
+    const shas = new Set();
+    for (const s of document.querySelectorAll('script[type="application/json"]')) {
+      for (const m of s.textContent.matchAll(/"headOid"\s*:\s*"([0-9a-f]{40})"/g)) shas.add(m[1]);
+    }
+    return shas.size === 1 ? [...shas][0] : null;
   }
 
   function statusLine(res) {

@@ -179,29 +179,75 @@
     return all[all.length - 1][1];
   }
 
+  // Exécute des tâches asynchrones `limit` à la fois ; renvoie une promesse par tâche, dans l'ordre.
+  function runLimited(tasks, limit) {
+    const slots = tasks.map(() => {
+      let resolve;
+      const promise = new Promise((r) => (resolve = r));
+      return { promise, resolve };
+    });
+    let next = 0;
+    const worker = async () => {
+      while (next < tasks.length) {
+        const k = next++;
+        slots[k].resolve(await tasks[k]());
+      }
+    };
+    for (let i = 0; i < Math.min(limit, tasks.length); i++) worker();
+    return slots.map((s) => s.promise);
+  }
+
+  async function loadEntry(pr, f, headSha) {
+    const entry = { path: f.newPath || f.oldPath, oldPath: f.oldPath, status: f.status, base: null, head: null, error: null };
+    try {
+      if (f.binary) throw new Error("fichier traité comme binaire par GitHub");
+      if (f.status === "removed") {
+        entry.base = textFromHunks(f.hunks, "-");
+      } else {
+        entry.head = await fetchText(`/${pr.owner}/${pr.repo}/raw/${headSha}/${encodePath(f.newPath)}`, true);
+        entry.base = f.status === "added" ? null : reverseApply(entry.head, f.hunks);
+      }
+    } catch (e) {
+      entry.error = e.message;
+    }
+    return entry;
+  }
+
   // Charge les deux versions de chaque fichier TwinCAT de la PR.
-  // onFile(entry) est appelé à chaque fichier prêt, pour un affichage progressif.
-  async function loadPrFiles(pr, isWanted, onFile) {
+  //   opts.headShaHint : SHA de tête lu dans la page, qui évite le .patch (lourd sur une grosse PR).
+  //                      Vérifié sur un premier fichier ; repli sur le .patch s'il est périmé.
+  //   opts.onProgress(texte) : étape en cours.
+  //   onFile(entry) : fichier prêt, appelé dans l'ordre du diff pour un affichage progressif.
+  async function loadPrFiles(pr, isWanted, onFile, opts = {}) {
+    const progress = opts.onProgress || (() => {});
+    progress("Récupération du diff de la PR…");
     const diffText = await fetchText(`/${pr.owner}/${pr.repo}/pull/${pr.number}.diff`, true);
     const files = parseUnifiedDiff(diffText).filter((f) => isWanted(f.newPath || f.oldPath));
     if (!files.length) return { headSha: null, files: [] };
-    const headSha = await headShaFromPatch(pr);
 
-    const entries = [];
-    for (const f of files) {
-      const entry = { path: f.newPath || f.oldPath, oldPath: f.oldPath, status: f.status, base: null, head: null, error: null };
-      try {
-        if (f.binary) throw new Error("fichier traité comme binaire par GitHub");
-        if (f.status === "removed") {
-          entry.base = textFromHunks(f.hunks, "-");
-        } else {
-          entry.head = await fetchText(`/${pr.owner}/${pr.repo}/raw/${headSha}/${encodePath(f.newPath)}`, true);
-          entry.base = f.status === "added" ? null : reverseApply(entry.head, f.hunks);
-        }
-      } catch (e) {
-        entry.error = e.message;
+    let headSha = opts.headShaHint || null;
+    const probe = files.find((f) => f.status !== "removed" && !f.binary);
+    let probed = null;
+    if (headSha && probe) {
+      progress(`${files.length} fichiers TwinCAT, vérification du dernier commit…`);
+      probed = await loadEntry(pr, probe, headSha);
+      if (probed.error) {
+        headSha = null;
+        probed = null;
       }
+    }
+    if (!headSha) {
+      progress("Recherche du dernier commit de la PR (.patch)…");
+      headSha = await headShaFromPatch(pr);
+    }
+
+    // Téléchargements en parallèle (6 à la fois), affichage dans l'ordre du diff.
+    const tasks = files.map((f) => () => (f === probe && probed ? Promise.resolve(probed) : loadEntry(pr, f, headSha)));
+    const entries = [];
+    for (const p of runLimited(tasks, 6)) {
+      const entry = await p;
       entries.push(entry);
+      progress(`Fichiers TwinCAT : ${entries.length}/${files.length}`);
       if (onFile) onFile(entry);
     }
     return { headSha, files: entries };

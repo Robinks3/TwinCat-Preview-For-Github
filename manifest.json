@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "TcPR Viewer",
-  "version": "0.1.3",
+  "version": "0.1.6",
   "description": "Vue structurée des fichiers TwinCAT 3 dans les pull requests GitHub : ST par méthode et propriété, configuration en propriétés, bruit XML retiré.",
   "action": { "default_title": "Vue TwinCAT de la PR (Alt+T)" },
   "background": { "service_worker": "src/background.js" },

@@ -189,7 +189,7 @@
     let statusText = "Chargement…";
 
     const body = h("div", { class: "tc-body" });
-    const status = h("span", { class: "tc-muted" });
+    const status = h("span", { class: "tc-muted" }, statusText);
     const rerender = () => {
       body.replaceChildren(...entries.map((e) => renderFile(e, opts, onExpand)));
       status.textContent = statusText;
