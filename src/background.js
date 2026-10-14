@@ -5,6 +5,12 @@
 
 const ALLOWED = /^https:\/\/github\.com\/[^/]+\/[^/]+\/(pull\/\d+\.(diff|patch)|raw\/[0-9a-f]{40}\/)/;
 
+// Clic sur l'icône de l'extension : ouvre ou ferme la vue dans l'onglet courant.
+// Un onglet ouvert avant l'installation n'a pas le content script : l'échec est ignoré.
+chrome.action.onClicked.addListener((tab) => {
+  if (tab.id !== undefined) chrome.tabs.sendMessage(tab.id, { type: "tcpr-toggle" }).catch(() => {});
+});
+
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (!msg || msg.type !== "tcpr-fetch") return false;
   // On ne relaie que les URL utiles à l'extension, jamais une URL arbitraire.

@@ -70,11 +70,19 @@
     }
   }
 
+  function toggle(forceReload) {
+    if (overlay) close();
+    else open(forceReload);
+  }
+
+  chrome.runtime.onMessage.addListener((msg) => {
+    if (msg && msg.type === "tcpr-toggle" && T.parsePrUrl(location.href)) toggle(false);
+  });
+
   document.addEventListener("keydown", (e) => {
     if (e.altKey && !e.ctrlKey && !e.metaKey && (e.key === "t" || e.key === "T") && T.parsePrUrl(location.href)) {
       e.preventDefault();
-      if (overlay) close();
-      else open(e.shiftKey);
+      toggle(e.shiftKey);
     }
   });
 
