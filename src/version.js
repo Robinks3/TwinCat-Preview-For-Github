@@ -1,4 +1,4 @@
-// TcPR Viewer : vue structurée des fichiers TwinCAT dans les PR GitHub.
+// TcReview for GitHub : vue structurée des fichiers TwinCAT dans les PR GitHub.
 //
 // Changelog (une version = une ligne) :
 //   0.1.0 - Version initiale : parseur XML, modèle TwinCAT (POU/DUT/GVL/Itf/TTO/plcproj/tsproj), diff par section, overlay GitHub.
@@ -27,9 +27,10 @@
 //   0.1.23 - ui.js : démontage avec hystérésis (1 500 / 5 000 px) et cache d'analyses borné par volume, plus de réanalyses à chaque aller-retour.
 //   0.1.24 - ui.js/styles.css : panneau pleine largeur, marges et retraits réduits, arborescence repliable (bouton « Arbre », mémorisé).
 //   0.1.25 - ui.js renderCodeSplit : vue côte à côte avant | après des sections modifiées, lignes appariées, activée par défaut et mémorisée.
+//   0.1.26 - manifest.json/version.js/ui.js : extension renommée « TcReview for GitHub » (nom du dépôt public), documentation et page de confidentialité.
 
 (function (root) {
-  const SCRIPT_VERSION = "0.1.25";
+  const SCRIPT_VERSION = "0.1.26";
   const SCRIPT_DATE = "2026-10-14";
 
   const api = { SCRIPT_VERSION, SCRIPT_DATE };

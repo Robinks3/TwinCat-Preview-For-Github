@@ -198,7 +198,7 @@
     }, "Copier le rapport");
     const el = T.h("div", { class: "tc-debug" },
       T.h("div", { class: "tc-debug-head" },
-        T.h("strong", {}, "Debug TcPR"),
+        T.h("strong", {}, "Debug TcReview"),
         T.h("span", { class: "tc-spacer" }),
         copyBtn,
         T.h("button", {

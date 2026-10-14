@@ -771,7 +771,7 @@
         toggle("Montrer l'inchangé", "showUnchanged"),
         h("button", { class: "tc-close", onclick: onClose, title: "Fermer (Échap)" }, "✕")),
       h("div", { class: "tc-split" }, nav, main),
-      h("div", { class: "tc-foot tc-muted" }, `TcPR Viewer v${T.SCRIPT_VERSION}`));
+      h("div", { class: "tc-foot tc-muted" }, `TcReview for GitHub v${T.SCRIPT_VERSION}`));
     const overlay = h("div", { class: "tc-overlay", onclick: (e) => { if (e.target === overlay) onClose(); } }, panel);
 
     const api = {

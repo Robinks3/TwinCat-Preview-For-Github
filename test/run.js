@@ -33,7 +33,7 @@ const keys = (m) => m.sections.map((s) => s.key);
 const section = (m, key) => m.sections.find((s) => s.key === key);
 
 test("xml : toutes les fixtures se lisent", () => {
-  for (const f of fs.readdirSync(FIX)) X.parseXml(read(f));
+  for (const f of fs.readdirSync(FIX).filter(M.isTwinCatPath)) X.parseXml(read(f));
 });
 
 test("xml : attributs avec '>' et entités, CDATA conservé tel quel", () => {

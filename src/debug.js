@@ -120,7 +120,7 @@
       }
     }
     const head = [
-      `TcPR Viewer ${root.TcPr && root.TcPr.SCRIPT_VERSION} · rapport debug`,
+      `TcReview for GitHub ${root.TcPr && root.TcPr.SCRIPT_VERSION} · rapport debug`,
       `Page : ${typeof location !== "undefined" ? location.pathname : "?"}`,
       `Navigateur : ${typeof navigator !== "undefined" ? navigator.userAgent.replace(/^.*(Chrome\/[\d.]+).*$/, "$1") : "?"}`,
       `Événements : ${state.events.length}`,

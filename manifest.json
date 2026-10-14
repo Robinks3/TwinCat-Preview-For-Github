@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "TcPR Viewer",
-  "version": "0.1.25",
+  "name": "TcReview for GitHub",
+  "version": "0.1.26",
   "description": "Vue structurée des fichiers TwinCAT 3 dans les pull requests GitHub : ST par méthode et propriété, configuration en propriétés, bruit XML retiré.",
   "action": {
     "default_title": "Mise en forme TwinCAT dans le diff : activer / couper"
