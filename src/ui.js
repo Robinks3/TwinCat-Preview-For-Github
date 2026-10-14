@@ -110,7 +110,10 @@
   }
 
   function renderCodeSplit(sec, rows, onExpand) {
-    const table = h("table", { class: "tc-code tc-code-split" });
+    // Largeurs fixées par <colgroup> : sans lui, une première ligne « ⋯ lignes inchangées »
+    // (colspan 4) faisait répartir la largeur en quatre colonnes égales.
+    const table = h("table", { class: "tc-code tc-code-split" },
+      h("colgroup", {}, h("col", { class: "tc-col-ln" }), h("col", {}), h("col", { class: "tc-col-ln" }), h("col", {})));
     const stA = { inBlock: false };
     const stB = { inBlock: false };
     const cell = (o, side, st) => {

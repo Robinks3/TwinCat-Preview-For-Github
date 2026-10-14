@@ -223,8 +223,7 @@ td[data-tcr-part="impl"] > .tcr-banner { background: var(--bgColor-success-muted
 
 /* Vue côte à côte : deux moitiés égales, lignes appariées */
 .tc-code-split { table-layout: fixed; }
-.tc-code-split td.tc-ln { width: 44px; }
-.tc-code-split td.tc-text { width: calc(50% - 44px); }
+.tc-code-split col.tc-col-ln { width: 44px; }
 .tc-code-split td.tc-del { background: var(--tc-del-bg); }
 .tc-code-split td.tc-add { background: var(--tc-add-bg); }
 .tc-code-split td.tc-empty { background: var(--tc-bg2); }
