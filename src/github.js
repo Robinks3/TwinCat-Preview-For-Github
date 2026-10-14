@@ -160,12 +160,33 @@
 
   // Les requêtes passent par le service worker (voir background.js) ; `fetchImpl` permet
   // de substituer une source de données (page de test).
+  // Journal du mode debug (absent sous Node).
+  const dbg = () => (root.TcPr && root.TcPr.debug) || { log() {}, time: () => () => {} };
+
+  function describeUrl(path) {
+    if (/\.diff$/.test(path)) return ".diff";
+    if (/\.patch$/.test(path)) return ".patch";
+    const m = /\/raw\/[0-9a-f]{40}\/(.*)$/.exec(path);
+    return m ? `raw ${decodeURIComponent(m[1])}` : path;
+  }
+
   async function fetchText(path, keepBom) {
     const url = `https://github.com${path}`;
-    if (api.fetchImpl) return api.fetchImpl(url, keepBom);
-    const res = await chrome.runtime.sendMessage({ type: "tcpr-fetch", url, keepBom: !!keepBom });
-    if (!res || !res.ok) throw new Error(`${res && res.status ? res.status : res && res.error ? res.error : "échec"} sur ${url}`);
-    return res.text;
+    const end = dbg().time("réseau", describeUrl(path));
+    let text;
+    try {
+      if (api.fetchImpl) text = await api.fetchImpl(url, keepBom);
+      else {
+        const res = await chrome.runtime.sendMessage({ type: "tcpr-fetch", url, keepBom: !!keepBom });
+        if (!res || !res.ok) throw new Error(`${res && res.status ? res.status : res && res.error ? res.error : "échec"} sur ${url}`);
+        text = res.text;
+      }
+    } catch (e) {
+      end({ erreur: e.message });
+      throw e;
+    }
+    end({ ko: Math.round(text.length / 1024) });
+    return text;
   }
 
   function encodePath(p) {
@@ -234,7 +255,10 @@
     const t0 = now();
     progress("Récupération du diff de la PR…");
     const diffText = await fetchText(`/${pr.owner}/${pr.repo}/pull/${pr.number}.diff`, true);
-    const files = parseUnifiedDiff(diffText).filter((f) => isWanted(f.newPath || f.oldPath));
+    const endParse = dbg().time("analyse", "lecture du .diff");
+    const allFiles = parseUnifiedDiff(diffText);
+    const files = allFiles.filter((f) => isWanted(f.newPath || f.oldPath));
+    endParse({ fichiers: allFiles.length, twincat: files.length, modifiés: files.filter(needsFetch).length });
     const stats = {
       diffMs: now() - t0,
       diffKb: Math.round(diffText.length / 1024),
@@ -248,17 +272,21 @@
     const resolveSha = (firstFile) => {
       if (!shaPromise) {
         shaPromise = (async () => {
+          const end = dbg().time("sha", "résolution du SHA de tête", { indice: opts.headShaHint ? "page" : "aucun" });
           if (opts.headShaHint) {
             const e = await loadEntry(pr, firstFile, opts.headShaHint);
             if (!e.error) {
               stats.shaSource = "page";
               stats.headSha = opts.headShaHint;
+              end({ source: "page" });
               return { sha: opts.headShaHint, file: firstFile, entry: e };
             }
+            dbg().log("sha", "SHA de la page refusé", { erreur: e.error });
           }
           const sha = await headShaFromPatch(pr);
           stats.shaSource = ".patch";
           stats.headSha = sha;
+          end({ source: ".patch" });
           return { sha };
         })();
       }

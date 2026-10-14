@@ -1,10 +1,14 @@
 {
   "manifest_version": 3,
   "name": "TcPR Viewer",
-  "version": "0.1.12",
+  "version": "0.1.15",
   "description": "Vue structurée des fichiers TwinCAT 3 dans les pull requests GitHub : ST par méthode et propriété, configuration en propriétés, bruit XML retiré.",
-  "action": { "default_title": "Vue TwinCAT de la PR (Alt+T)" },
-  "background": { "service_worker": "src/background.js" },
+  "action": {
+    "default_title": "Mise en forme TwinCAT dans le diff : activer / couper"
+  },
+  "background": {
+    "service_worker": "src/background.js"
+  },
   "host_permissions": [
     "https://github.com/*",
     "https://patch-diff.githubusercontent.com/*",
@@ -12,9 +16,24 @@
   ],
   "content_scripts": [
     {
-      "matches": ["https://github.com/*"],
-      "js": ["src/version.js", "src/xml.js", "src/model.js", "src/diff.js", "src/github.js", "src/ui.js", "src/content.js"],
-      "css": ["styles.css"],
+      "matches": [
+        "https://github.com/*"
+      ],
+      "js": [
+        "src/version.js",
+        "src/debug.js",
+        "src/xml.js",
+        "src/model.js",
+        "src/lines.js",
+        "src/diff.js",
+        "src/github.js",
+        "src/ui.js",
+        "src/inline.js",
+        "src/content.js"
+      ],
+      "css": [
+        "styles.css"
+      ],
       "run_at": "document_idle"
     }
   ]

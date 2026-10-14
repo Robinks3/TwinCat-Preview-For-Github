@@ -1,5 +1,5 @@
 /* Couleurs reprises des variables CSS de GitHub, pour suivre automatiquement le thème clair ou sombre. */
-.tc-fab, .tc-overlay {
+.tc-fab, .tc-bar, .tc-debug, .tc-overlay {
   --tc-fg: var(--fgColor-default, #1f2328);
   --tc-muted: var(--fgColor-muted, #59636e);
   --tc-bg: var(--bgColor-default, #ffffff);
@@ -167,3 +167,47 @@
   .tc-overlay { padding: 0; }
   .tc-panel { border-radius: 0; }
 }
+
+/* ---------- Barre d'outils ---------- */
+.tc-bar {
+  position: fixed; right: 20px; bottom: 20px; z-index: 2147483000; display: flex; gap: 2px;
+  padding: 3px; border-radius: 999px; border: 1px solid var(--tc-border); background: var(--tc-bg);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+.tc-btn {
+  border: 1px solid transparent; background: transparent; color: var(--tc-fg); cursor: pointer;
+  padding: 5px 12px; border-radius: 999px; font: 600 12px/1.4 inherit; font-family: inherit;
+}
+.tc-btn:hover { background: var(--tc-bg2); }
+.tc-btn[aria-pressed="true"] { background: var(--tc-accent); color: #fff; }
+.tc-btn.tc-on:not([aria-pressed="true"]) { border-color: var(--tc-attention); }
+
+/* ---------- Panneau de debug ---------- */
+.tc-debug {
+  position: fixed; left: 20px; bottom: 20px; z-index: 2147483002; width: min(760px, calc(100vw - 40px));
+  height: 340px; display: flex; flex-direction: column; border: 1px solid var(--tc-border); border-radius: 10px;
+  background: var(--tc-bg); color: var(--tc-fg); box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25); overflow: hidden;
+}
+.tc-debug-head { display: flex; align-items: center; gap: 4px; padding: 6px 10px; background: var(--tc-bg2); border-bottom: 1px solid var(--tc-border); font-size: 13px; }
+.tc-debug-head .tc-btn { border-color: var(--tc-border); }
+.tc-debug-log { flex: 1; margin: 0; padding: 8px 10px; overflow: auto; font: 11px/1.5 var(--tc-mono); white-space: pre; user-select: text; }
+
+/* ---------- Mise en forme intégrée au diff GitHub ---------- */
+tr[data-tcr-hide] { display: none !important; }
+tr[data-tcr-dim] td { opacity: 0.5; }
+code[data-tcr-code] > .diff-text-inner { display: none !important; }
+.tcr-code { white-space: pre-wrap; word-break: break-word; }
+td[data-tcr-part="decl"] { box-shadow: inset 3px 0 0 var(--fgColor-accent, #0969da); }
+td[data-tcr-part="impl"] { box-shadow: inset 3px 0 0 var(--fgColor-success, #1a7f37); }
+.tcr-banner {
+  display: block; margin: 6px 0 4px; padding: 2px 8px; border-radius: 4px; width: fit-content;
+  font: 600 12px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+  background: var(--bgColor-accent-muted, #ddf4ff); color: var(--fgColor-accent, #0969da);
+}
+td[data-tcr-part="impl"] > .tcr-banner { background: var(--bgColor-success-muted, #dafbe1); color: var(--fgColor-success, #1a7f37); }
+.tcr-code .tc-kw { color: var(--color-prettylights-syntax-keyword, #cf222e); font-weight: 600; }
+.tcr-code .tc-type { color: var(--color-prettylights-syntax-entity, #8250df); }
+.tcr-code .tc-str { color: var(--color-prettylights-syntax-string, #0a3069); }
+.tcr-code .tc-num { color: var(--color-prettylights-syntax-constant, #0550ae); }
+.tcr-code .tc-com { color: var(--color-prettylights-syntax-comment, #59636e); font-style: italic; }
+.tcr-code .tc-pragma { color: var(--color-prettylights-syntax-variable, #953800); }

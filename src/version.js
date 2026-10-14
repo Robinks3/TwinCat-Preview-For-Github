@@ -14,9 +14,12 @@
 //   0.1.10 - github.js loadEntry : fichiers ajoutés reconstruits depuis le diff, sans téléchargement (déjà entiers dans le .diff).
 //   0.1.11 - github.js/background.js/ui.js : liste des fichiers affichée dès le .diff, gros fichier lent non bloquant, délai de 60 s par requête.
 //   0.1.12 - github.js createPrLoader/content.js : téléchargement à la demande (carte proche de l'écran), une seule fois par fichier et par page.
+//   0.1.13 - debug.js + instrumentation : mode debug (journal des requêtes, SHA, analyse, rendu) et rapport copiable pour diagnostiquer les lenteurs.
+//   0.1.14 - inline.js : mise en forme dans le diff GitHub lui-même (bruit masqué, ST sans CDATA, bandeaux de section), commentaires conservés.
+//   0.1.15 - content.js : barre d'outils (intégré / panneau / debug), chargeur partagé, l'icône de l'extension active la mise en forme intégrée.
 
 (function (root) {
-  const SCRIPT_VERSION = "0.1.12";
+  const SCRIPT_VERSION = "0.1.15";
   const SCRIPT_DATE = "2026-10-14";
 
   const api = { SCRIPT_VERSION, SCRIPT_DATE };

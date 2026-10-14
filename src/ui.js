@@ -236,6 +236,9 @@
   function analyze(entry, opts) {
     const cached = analysisCache.get(entry);
     if (cached && cached.ignoreWs === opts.ignoreWs) return cached.value;
+    const end = T.debug.time("analyse", entry.path, {
+      ko: Math.round(((entry.base || "").length + (entry.head || "").length) / 1024),
+    });
     let value;
     if (entry.error) value = { error: `Impossible d'analyser ce fichier : ${entry.error}`, status: "modified" };
     else {
@@ -255,6 +258,7 @@
       }
     }
     analysisCache.set(entry, { ignoreWs: opts.ignoreWs, value });
+    end({ statut: value.status });
     return value;
   }
 
@@ -324,6 +328,7 @@
     }
     entry.ui.filled = true;
     const a = analyze(entry, ctx.opts);
+    const endRender = T.debug.time("rendu", entry.path);
     const parts = [];
     if (a.error) parts.push(h("div", { class: "tc-error" }, a.error));
     else {
@@ -336,6 +341,7 @@
     entry.ui.badge.replaceWith((entry.ui.badge = badge(a.status)));
     entry.ui.body.classList.remove("tc-file-pending");
     entry.ui.body.replaceChildren(...parts);
+    endRender({ noeuds: entry.ui.body.getElementsByTagName("*").length });
   }
 
   // ---------- Navigation (arborescence des fichiers et de leurs membres) ----------

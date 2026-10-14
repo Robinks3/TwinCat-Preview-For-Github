@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TcPR Viewer · banc intégré</title>
+  <link rel="stylesheet" href="../../styles.css">
+  <style>
+    /* Imitation minimale de la vue « Files changed » de GitHub (structure relevée sur une vraie PR). */
+    body { font-family: system-ui, sans-serif; margin: 24px; background: #fff; color: #1f2328; }
+    .diff { border: 1px solid #d1d9e0; border-radius: 6px; margin: 16px 0; }
+    .diff h3 { margin: 0; padding: 8px 12px; font: 600 13px ui-monospace, monospace; background: #f6f8fa; border-bottom: 1px solid #d1d9e0; }
+    table { width: 100%; border-collapse: collapse; font: 12px/20px ui-monospace, Consolas, monospace; }
+    td.num { width: 40px; text-align: right; color: #59636e; padding: 0 8px; }
+    td.diff-text-cell { padding: 0 8px; }
+    code.diff-text { display: flex; white-space: pre; }
+    .diff-text-marker { width: 16px; flex-shrink: 0; }
+    code.addition { background: #dafbe1; }
+    code.deletion { background: #ffebe9; }
+    td.diff-hunk-cell { background: #ddf4ff; color: #59636e; padding: 2px 8px; }
+    button { margin: 4px; padding: 6px 12px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Banc de test · mise en forme intégrée</h1>
+  <p>Tables construites comme celles de GitHub à partir du diff de démo, puis transformées par <code>inline.js</code>.</p>
+  <button id="on">Activer</button><button id="off">Désactiver</button>
+  <div id="diffs"></div>
+
+  <script src="../../src/version.js"></script>
+  <script src="../../src/debug.js"></script>
+  <script src="../../src/xml.js"></script>
+  <script src="../../src/model.js"></script>
+  <script src="../../src/lines.js"></script>
+  <script src="../../src/diff.js"></script>
+  <script src="../../src/github.js"></script>
+  <script src="../../src/ui.js"></script>
+  <script src="../../src/inline.js"></script>
+  <script>
+    const T = window.TcPr;
+    T.debug.setEnabled(true);
+    let map = null;
+    T.setFetchImpl(async (url, keepBom) => {
+      map = map || (await (await fetch("data/map.json")).json());
+      if (!map[url]) throw new Error(`404 sur ${url}`);
+      const buf = await (await fetch(`data/${map[url]}`)).arrayBuffer();
+      return new TextDecoder("utf-8", { ignoreBOM: !!keepBom }).decode(buf);
+    });
+    const pr = { owner: "demo", repo: "tcblack", number: 1 };
+
+    // Construit les tables au format GitHub depuis le .diff de démo.
+    function el(tag, attrs, ...kids) {
+      const e = document.createElement(tag);
+      for (const [k, v] of Object.entries(attrs || {})) e.setAttribute(k, v);
+      e.append(...kids);
+      return e;
+    }
+    async function build() {
+      map = map || (await (await fetch("data/map.json")).json());
+      const diff = await (await fetch(`data/${map["https://github.com/demo/tcblack/pull/1.diff"]}`)).text();
+      for (const f of T.parseUnifiedDiff(diff)) {
+        const tbody = el("tbody");
+        for (const hk of f.hunks) {
+          tbody.append(el("tr", { class: "diff-line-row" }, el("td", { class: "diff-hunk-cell", colspan: "4" }, `@@ -${hk.oldStart},${hk.oldCount} +${hk.newStart},${hk.newCount} @@`)));
+          let a = hk.oldStart, b = hk.newStart;
+          for (const l of hk.lines) {
+            const text = l.text.replace(/\r?\n$/, "").replace(/\r$/, "");
+            const L = l.t === "+" ? null : a++;
+            const R = l.t === "-" ? null : b++;
+            const key = `b:${R ?? L}-l:${L}-r:${R}`;
+            const cls = l.t === "+" ? "addition" : l.t === "-" ? "deletion" : "";
+            tbody.append(el("tr", { class: "diff-line-row" },
+              el("td", { class: "num" }, String(L ?? "")),
+              el("td", { class: "num" }, String(R ?? "")),
+              el("td", { class: "diff-text-cell", "data-diff-line-key": key, "data-diff-side": l.t === "-" ? "left" : "right" },
+                el("code", { class: `diff-text ${cls}` }, el("span", { class: "diff-text-marker" }, l.t === " " ? " " : l.t), el("div", { class: "diff-text-inner" }, text)))));
+          }
+        }
+        document.getElementById("diffs").append(el("div", { class: "diff" }, el("h3", {}, f.newPath),
+          el("table", { "data-diff-anchor": `diff-${f.newPath}`, "aria-label": `Diff for: ${f.newPath}` }, tbody)));
+      }
+    }
+    let loaderP = null;
+    const getLoader = () => (loaderP = loaderP || T.createPrLoader(pr, T.isTwinCatPath, {}));
+    document.getElementById("on").onclick = () => T.inline.enable(getLoader);
+    document.getElementById("off").onclick = () => T.inline.disable();
+    build();
+  </script>
+</body>
+</html>
